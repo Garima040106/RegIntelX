@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from sqlalchemy import text
-
+from backend.app.api.routes.sources import router as sources_router
 from backend.app.core.database import engine
 
 app = FastAPI(
@@ -8,7 +8,10 @@ app = FastAPI(
     description="AI-powered regulatory intelligence and compliance platform",
     version="0.1.0",
 )
-
+app.include_router(
+    sources_router,
+    prefix="/api/v1",
+)
 
 @app.get("/health")
 def health_check():
