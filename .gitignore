@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+regintelx-env/
+.env
+.env.*
+
+# Node
+node_modules/
+.next/
+out/
+
+# Build
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
