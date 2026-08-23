@@ -21,8 +21,19 @@ type Source = {
   is_active: boolean;
 };
 
+type Regulation = {
+  id: string;
+  title: string;
+  circular_number: string | null;
+  published_date: string | null;
+  effective_date: string | null;
+  source_url: string;
+  status: string;
+};
+
 export default function Home() {
   const [sources, setSources] = useState<Source[]>([]);
+  const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [regulationCount, setRegulationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("Checking...");
@@ -31,28 +42,38 @@ export default function Home() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/api/v1/sources`);
+      const sourcesResponse = await fetch(
+        `${API_URL}/api/v1/sources`
+      );
 
-      if (!response.ok) {
+      if (!sourcesResponse.ok) {
         throw new Error("Failed to load sources");
       }
 
-      const data = await response.json();
+      const sourcesData = await sourcesResponse.json();
 
-      setSources(Array.isArray(data) ? data : data.items ?? []);
+      setSources(
+        Array.isArray(sourcesData)
+          ? sourcesData
+          : sourcesData.items ?? []
+      );
+
       const regulationsResponse = await fetch(
-	`${API_URL}/api/v1/regulations`
+        `${API_URL}/api/v1/regulations`
       );
 
       if (!regulationsResponse.ok) {
-	throw new Error("Failed to load regulations");
+        throw new Error("Failed to load regulations");
       }
 
-      const regulations = await regulationsResponse.json();
+      const regulationsData = await regulationsResponse.json();
 
-      setRegulationCount(
-	Array.isArray(regulations) ? regulations.length : 0
-      );
+      const regulationList = Array.isArray(regulationsData)
+        ? regulationsData
+        : [];
+
+      setRegulations(regulationList);
+      setRegulationCount(regulationList.length);
       setBackendStatus("Connected");
     } catch {
       setBackendStatus("Unavailable");
@@ -112,11 +133,16 @@ export default function Home() {
         <section className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-slate-500">Regulatory Sources</span>
+              <span className="text-sm text-slate-500">
+                Regulatory Sources
+              </span>
               <Database size={20} className="text-slate-400" />
             </div>
 
-            <p className="text-3xl font-semibold">{sources.length}</p>
+            <p className="text-3xl font-semibold">
+              {sources.length}
+            </p>
+
             <p className="mt-1 text-sm text-slate-500">
               Connected sources
             </p>
@@ -124,11 +150,16 @@ export default function Home() {
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-slate-500">Regulations</span>
+              <span className="text-sm text-slate-500">
+                Regulations
+              </span>
               <FileText size={20} className="text-slate-400" />
             </div>
 
-            <p className="text-3xl font-semibold">{regulationCount}</p>
+            <p className="text-3xl font-semibold">
+              {regulationCount}
+            </p>
+
             <p className="mt-1 text-sm text-slate-500">
               Currently stored
             </p>
@@ -136,11 +167,16 @@ export default function Home() {
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-slate-500">System Status</span>
+              <span className="text-sm text-slate-500">
+                System Status
+              </span>
               <Activity size={20} className="text-slate-400" />
             </div>
 
-            <p className="text-3xl font-semibold">Live</p>
+            <p className="text-3xl font-semibold">
+              {backendStatus === "Connected" ? "Live" : "Offline"}
+            </p>
+
             <p className="mt-1 text-sm text-slate-500">
               Backend deployed on Render
             </p>
@@ -150,7 +186,10 @@ export default function Home() {
         <section className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="flex items-center justify-between border-b px-6 py-5">
             <div>
-              <h3 className="font-semibold">Regulatory Sources</h3>
+              <h3 className="font-semibold">
+                Regulatory Sources
+              </h3>
+
               <p className="mt-1 text-sm text-slate-500">
                 Sources currently registered in RegIntelX.
               </p>
@@ -181,7 +220,10 @@ export default function Home() {
                   className="flex items-center justify-between px-6 py-5"
                 >
                   <div>
-                    <h4 className="font-medium">{source.name}</h4>
+                    <h4 className="font-medium">
+                      {source.name}
+                    </h4>
+
                     <p className="mt-1 text-sm text-slate-500">
                       {source.authority}
                     </p>
@@ -196,6 +238,61 @@ export default function Home() {
                     Visit source
                     <ExternalLink size={15} />
                   </a>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-2xl border bg-white shadow-sm">
+          <div className="border-b px-6 py-5">
+            <h3 className="font-semibold">
+              Regulations
+            </h3>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Regulatory documents currently stored in RegIntelX.
+            </p>
+          </div>
+
+          <div className="divide-y">
+            {regulations.length === 0 ? (
+              <div className="px-6 py-8 text-sm text-slate-500">
+                No regulations found.
+              </div>
+            ) : (
+              regulations.map((regulation) => (
+                <div
+                  key={regulation.id}
+                  className="flex items-center justify-between px-6 py-5"
+                >
+                  <div>
+                    <h4 className="font-medium">
+                      {regulation.title}
+                    </h4>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {regulation.circular_number
+                        ? `Circular: ${regulation.circular_number}`
+                        : "Circular number not available"}
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Status: {regulation.status}
+                    </p>
+                  </div>
+
+                  {regulation.source_url && (
+                    <a
+                      href={regulation.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+                    >
+                      View document
+                      <ExternalLink size={15} />
+                    </a>
+                  )}
                 </div>
               ))
             )}
