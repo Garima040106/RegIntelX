@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from backend.app.api.routes.sources import router as sources_router
+from backend.app.api.routes.regulations import router as regulations_router
 from backend.app.core.database import engine
 
 
@@ -26,7 +27,10 @@ app.include_router(
     sources_router,
     prefix="/api/v1",
 )
-
+app.include_router(
+    regulations_router,
+    prefix="/api/v1",
+)
 
 @app.get("/health")
 def health_check():
