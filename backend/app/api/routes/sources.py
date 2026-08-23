@@ -100,3 +100,21 @@ def update_source(
     db.refresh(source)
 
     return source
+@router.delete(
+    "/{source_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_source(
+    source_id: UUID,
+    db: Session = Depends(get_db),
+):
+    source = db.get(RegulatorySource, source_id)
+
+    if source is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regulatory source not found",
+        )
+
+    db.delete(source)
+    db.commit()
