@@ -23,6 +23,7 @@ type Source = {
 
 export default function Home() {
   const [sources, setSources] = useState<Source[]>([]);
+  const [regulationCount, setRegulationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("Checking...");
 
@@ -39,6 +40,19 @@ export default function Home() {
       const data = await response.json();
 
       setSources(Array.isArray(data) ? data : data.items ?? []);
+      const regulationsResponse = await fetch(
+	`${API_URL}/api/v1/regulations`
+      );
+
+      if (!regulationsResponse.ok) {
+	throw new Error("Failed to load regulations");
+      }
+
+      const regulations = await regulationsResponse.json();
+
+      setRegulationCount(
+	Array.isArray(regulations) ? regulations.length : 0
+      );
       setBackendStatus("Connected");
     } catch {
       setBackendStatus("Unavailable");
@@ -114,7 +128,7 @@ export default function Home() {
               <FileText size={20} className="text-slate-400" />
             </div>
 
-            <p className="text-3xl font-semibold">2</p>
+            <p className="text-3xl font-semibold">{regulationCount}</p>
             <p className="mt-1 text-sm text-slate-500">
               Currently stored
             </p>
