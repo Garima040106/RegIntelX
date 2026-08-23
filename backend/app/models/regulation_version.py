@@ -1,5 +1,5 @@
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Integer, Text
@@ -11,7 +11,7 @@ from backend.app.core.database import Base
 class RegulationVersion(Base):
     __tablename__ = "regulation_versions"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True,default=uuid4,)
 
     regulation_id: Mapped[UUID] = mapped_column(
         ForeignKey("regulations.id"),
@@ -44,8 +44,9 @@ class RegulationVersion(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    	DateTime(timezone=True),
         nullable=False,
+        default=datetime.utcnow,
     )
 
     regulation = relationship(

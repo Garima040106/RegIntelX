@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,7 +10,10 @@ from backend.app.core.database import Base
 class Regulation(Base):
     __tablename__ = "regulations"
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(
+	primary_key=True,
+	default=uuid4,
+    )
 
     source_id: Mapped[UUID] = mapped_column(
         ForeignKey("regulatory_sources.id"),
@@ -54,13 +57,16 @@ class Regulation(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
+	DateTime(timezone=True),
+    	nullable=False,
+    	default=datetime.utcnow,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    	DateTime(timezone=True),
         nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
 
     source = relationship(
