@@ -9,6 +9,7 @@ import {
   ExternalLink,
   RefreshCw,
 } from "lucide-react";
+import Link from "next/link";
 
 const API_URL = "https://regintelx-backend.onrender.com";
 
@@ -34,23 +35,24 @@ type Regulation = {
 export default function Home() {
   const [sources, setSources] = useState<Source[]>([]);
   const [regulations, setRegulations] = useState<Regulation[]>([]);
-  const [regulationCount, setRegulationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("Checking...");
 
-  async function loadSources() {
+  async function loadData() {
     try {
       setLoading(true);
 
-      const sourcesResponse = await fetch(
-        `${API_URL}/api/v1/sources`
-      );
+      const [sourcesResponse, regulationsResponse] = await Promise.all([
+        fetch(`${API_URL}/api/v1/sources`),
+        fetch(`${API_URL}/api/v1/regulations`),
+      ]);
 
-      if (!sourcesResponse.ok) {
-        throw new Error("Failed to load sources");
+      if (!sourcesResponse.ok || !regulationsResponse.ok) {
+        throw new Error("Failed to load data");
       }
 
       const sourcesData = await sourcesResponse.json();
+      const regulationsData = await regulationsResponse.json();
 
       setSources(
         Array.isArray(sourcesData)
@@ -58,22 +60,12 @@ export default function Home() {
           : sourcesData.items ?? []
       );
 
-      const regulationsResponse = await fetch(
-        `${API_URL}/api/v1/regulations`
+      setRegulations(
+        Array.isArray(regulationsData)
+          ? regulationsData
+          : regulationsData.items ?? []
       );
 
-      if (!regulationsResponse.ok) {
-        throw new Error("Failed to load regulations");
-      }
-
-      const regulationsData = await regulationsResponse.json();
-
-      const regulationList = Array.isArray(regulationsData)
-        ? regulationsData
-        : [];
-
-      setRegulations(regulationList);
-      setRegulationCount(regulationList.length);
       setBackendStatus("Connected");
     } catch {
       setBackendStatus("Unavailable");
@@ -83,7 +75,7 @@ export default function Home() {
   }
 
   useEffect(() => {
-    loadSources();
+    loadData();
   }, []);
 
   return (
@@ -113,6 +105,7 @@ export default function Home() {
                     : "bg-red-500"
               }`}
             />
+
             Backend: {backendStatus}
           </div>
         </div>
@@ -136,6 +129,7 @@ export default function Home() {
               <span className="text-sm text-slate-500">
                 Regulatory Sources
               </span>
+
               <Database size={20} className="text-slate-400" />
             </div>
 
@@ -153,11 +147,12 @@ export default function Home() {
               <span className="text-sm text-slate-500">
                 Regulations
               </span>
+
               <FileText size={20} className="text-slate-400" />
             </div>
 
             <p className="text-3xl font-semibold">
-              {regulationCount}
+              {regulations.length}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -170,6 +165,7 @@ export default function Home() {
               <span className="text-sm text-slate-500">
                 System Status
               </span>
+
               <Activity size={20} className="text-slate-400" />
             </div>
 
@@ -196,7 +192,7 @@ export default function Home() {
             </div>
 
             <button
-              onClick={loadSources}
+              onClick={loadData}
               className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
             >
               <RefreshCw size={15} />
@@ -256,7 +252,11 @@ export default function Home() {
           </div>
 
           <div className="divide-y">
-            {regulations.length === 0 ? (
+            {loading ? (
+              <div className="px-6 py-8 text-sm text-slate-500">
+                Loading regulations...
+              </div>
+            ) : regulations.length === 0 ? (
               <div className="px-6 py-8 text-sm text-slate-500">
                 No regulations found.
               </div>
@@ -277,22 +277,18 @@ export default function Home() {
                         : "Circular number not available"}
                     </p>
 
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-slate-500">
                       Status: {regulation.status}
                     </p>
                   </div>
 
-                  {regulation.source_url && (
-                    <a
-                      href={regulation.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-                    >
-                      View document
-                      <ExternalLink size={15} />
-                    </a>
-                  )}
+                  <Link
+                    href={`/regulations/${regulation.id}`}
+                    className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
+                  >
+                    View document
+                    <ExternalLink size={15} />
+                  </Link>
                 </div>
               ))
             )}
