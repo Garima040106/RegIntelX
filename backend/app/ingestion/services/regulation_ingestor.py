@@ -17,57 +17,34 @@ def ingest_regulation(
     metadata: RegulationMetadata,
     extracted_text: str,
 ) -> Regulation:
+
     content_hash = sha256(
         extracted_text.encode("utf-8")
     ).hexdigest()
 
-    existing_version = db.scalar(
-        select(RegulationVersion).where(
-            RegulationVersion.content_hash == content_hash
-        )
-    )
+    now = datetime.now(timezone.utc)
 
-    if existing_version:
-        regulation = db.get(Regulation, existing_version.regulation_id)
-
-        if regulation:
-            return regulation
-
+    # First identify the regulation by its source URL.
+    # This is important because the discovery phase already
+    # created Regulation rows for these URLs.
     regulation = db.scalar(
         select(Regulation).where(
             Regulation.source_id == source_id,
-            Regulation.circular_number == metadata.circular_number,
+            Regulation.source_url == source_url,
         )
     )
 
-    now = datetime.now(timezone.utc)
-
-    if regulation:
-        latest_version = db.scalar(
-            select(RegulationVersion)
-            .where(
-                RegulationVersion.regulation_id == regulation.id
+    # If no regulation exists for this URL, try the circular number.
+    if regulation is None and metadata.circular_number:
+        regulation = db.scalar(
+            select(Regulation).where(
+                Regulation.source_id == source_id,
+                Regulation.circular_number == metadata.circular_number,
             )
-            .order_by(RegulationVersion.version_number.desc())
         )
 
-        next_version = (
-            latest_version.version_number + 1
-            if latest_version
-            else 1
-        )
-
-        regulation.title = metadata.title or regulation.title
-        regulation.published_date = (
-            metadata.issue_date or regulation.published_date
-        )
-        regulation.effective_date = (
-            metadata.effective_date or regulation.effective_date
-        )
-        regulation.source_url = source_url
-        regulation.updated_at = now
-
-    else:
+    # Create the regulation if it doesn't exist.
+    if regulation is None:
         regulation = Regulation(
             source_id=source_id,
             title=metadata.title or "Untitled Regulation",
@@ -80,9 +57,56 @@ def ingest_regulation(
             updated_at=now,
         )
 
-        next_version = 1
         db.add(regulation)
         db.flush()
+
+    else:
+        # Enrich the existing discovery record.
+        if metadata.title:
+            regulation.title = metadata.title
+
+        if metadata.circular_number:
+            regulation.circular_number = metadata.circular_number
+
+        if metadata.issue_date:
+            regulation.published_date = metadata.issue_date
+
+        if metadata.effective_date:
+            regulation.effective_date = metadata.effective_date
+
+        regulation.source_url = source_url
+        regulation.updated_at = now
+
+    # Check whether this exact document version is already
+    # attached to this regulation.
+    existing_version = db.scalar(
+        select(RegulationVersion).where(
+            RegulationVersion.regulation_id == regulation.id,
+            RegulationVersion.content_hash == content_hash,
+        )
+    )
+
+    if existing_version:
+        db.commit()
+        db.refresh(regulation)
+        return regulation
+
+    # Determine the next version number for this regulation.
+    latest_version = db.scalar(
+        select(RegulationVersion)
+        .where(
+            RegulationVersion.regulation_id == regulation.id
+        )
+        .order_by(
+            RegulationVersion.version_number.desc()
+        )
+    )
+
+    next_version = (
+        latest_version.version_number + 1
+        if latest_version
+        else 1
+    )
 
     version = RegulationVersion(
         regulation_id=regulation.id,
