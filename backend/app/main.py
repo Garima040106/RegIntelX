@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from backend.app.api.routes.sources import router as sources_router
 from backend.app.api.routes.regulations import router as regulations_router
+from backend.app.api.routes.ingestion import router as ingestion_router
 from backend.app.core.database import engine
 
 
@@ -25,6 +26,15 @@ app.add_middleware(
 
 app.include_router(
     sources_router,
+    prefix="/api/v1",
+)
+app.include_router(
+    regulations_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    ingestion_router,
     prefix="/api/v1",
 )
 app.include_router(
