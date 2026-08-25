@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.ingestion.metadata_extractor import RegulationMetadata
 from backend.app.models.regulation import Regulation
 from backend.app.models.regulation_version import RegulationVersion
-
+from backend.app.services.embedding_service import generate_embedding
 
 def ingest_regulation(
     db: Session,
@@ -108,12 +108,15 @@ def ingest_regulation(
         else 1
     )
 
+    embedding = generate_embedding(extracted_text)
+
     version = RegulationVersion(
         regulation_id=regulation.id,
         version_number=next_version,
         document_url=source_url,
         extracted_text=extracted_text,
         content_hash=content_hash,
+	embedding=embedding,
         created_at=now,
     )
 
