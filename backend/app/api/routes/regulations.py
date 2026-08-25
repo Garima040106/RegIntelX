@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -54,10 +55,42 @@ def search_regulations(
 
 @router.get("")
 def list_regulations(
+    status_filter: str | None = Query(None, alias="status"),
+    published_from: date | None = None,
+    published_to: date | None = None,
+    effective_from: date | None = None,
+    effective_to: date | None = None,
     db: Session = Depends(get_db),
 ):
+    query = select(Regulation)
+
+    if status_filter:
+        query = query.where(
+            Regulation.status == status_filter
+        )
+
+    if published_from:
+        query = query.where(
+            Regulation.published_date >= published_from
+        )
+
+    if published_to:
+        query = query.where(
+            Regulation.published_date <= published_to
+        )
+
+    if effective_from:
+        query = query.where(
+            Regulation.effective_date >= effective_from
+        )
+
+    if effective_to:
+        query = query.where(
+            Regulation.effective_date <= effective_to
+        )
+
     regulations = db.scalars(
-        select(Regulation).order_by(Regulation.created_at.desc())
+        query.order_by(Regulation.created_at.desc())
     ).all()
 
     return [
