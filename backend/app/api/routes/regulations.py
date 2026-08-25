@@ -2,7 +2,7 @@ from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
@@ -60,6 +60,8 @@ def list_regulations(
     published_to: date | None = None,
     effective_from: date | None = None,
     effective_to: date | None = None,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
     query = select(Regulation)
@@ -89,14 +91,28 @@ def list_regulations(
             Regulation.effective_date <= effective_to
         )
 
+    total = db.scalar(
+        select(func.count()).select_from(
+            query.subquery()
+        )
+    )
+
     regulations = db.scalars(
-        query.order_by(Regulation.created_at.desc())
+        query
+        .order_by(Regulation.created_at.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
 
-    return [
-        regulation_response(regulation)
-        for regulation in regulations
-    ]
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            regulation_response(regulation)
+            for regulation in regulations
+        ],
+    }
 
 
 @router.get("/{regulation_id}")
