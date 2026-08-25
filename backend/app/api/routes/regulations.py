@@ -150,6 +150,45 @@ def list_regulation_versions(
     ]
 
 
+@router.get("/{regulation_id}/versions/{version_number}")
+def get_regulation_version(
+    regulation_id: UUID,
+    version_number: int,
+    db: Session = Depends(get_db),
+):
+    regulation = db.get(Regulation, regulation_id)
+
+    if regulation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regulation not found",
+        )
+
+    version = db.scalar(
+        select(RegulationVersion)
+        .where(
+            RegulationVersion.regulation_id == regulation_id,
+            RegulationVersion.version_number == version_number,
+        )
+    )
+
+    if version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regulation version not found",
+        )
+
+    return {
+        "id": version.id,
+        "regulation_id": version.regulation_id,
+        "version_number": version.version_number,
+        "document_url": version.document_url,
+        "extracted_text": version.extracted_text,
+        "content_hash": version.content_hash,
+        "created_at": version.created_at,
+    }
+
+
 @router.get("/{regulation_id}")
 def get_regulation(
     regulation_id: UUID,
