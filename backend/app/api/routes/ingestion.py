@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.core.rate_limit import limiter
 from backend.app.models import Regulation, RegulatorySource
 from backend.app.models.regulation_version import RegulationVersion
 from backend.app.ingestion.document_downloader import download_document
@@ -18,7 +19,9 @@ router = APIRouter(
 
 
 @router.post("/rbi")
+@limiter.limit("10/minute")
 def ingest_rbi(
+    request: Request,
     db: Session = Depends(get_db),
 ):
     try:
@@ -46,7 +49,9 @@ def ingest_rbi(
 
 
 @router.post("/rbi/process")
+@limiter.limit("5/minute")
 def process_rbi(
+    request: Request,
     db: Session = Depends(get_db),
 ):
     source = db.scalars(
