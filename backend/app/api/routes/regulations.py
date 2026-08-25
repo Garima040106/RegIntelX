@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
@@ -14,6 +14,44 @@ router = APIRouter(
 )
 
 
+def regulation_response(regulation):
+    return {
+        "id": regulation.id,
+        "title": regulation.title,
+        "circular_number": regulation.circular_number,
+        "published_date": regulation.published_date,
+        "effective_date": regulation.effective_date,
+        "source_url": regulation.source_url,
+        "status": regulation.status,
+        "summary": regulation.summary,
+    }
+
+
+@router.get("/search")
+def search_regulations(
+    q: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+):
+    search = f"%{q}%"
+
+    regulations = db.scalars(
+        select(Regulation)
+        .where(
+            or_(
+                Regulation.title.ilike(search),
+                Regulation.circular_number.ilike(search),
+                Regulation.summary.ilike(search),
+            )
+        )
+        .order_by(Regulation.created_at.desc())
+    ).all()
+
+    return [
+        regulation_response(regulation)
+        for regulation in regulations
+    ]
+
+
 @router.get("")
 def list_regulations(
     db: Session = Depends(get_db),
@@ -23,16 +61,7 @@ def list_regulations(
     ).all()
 
     return [
-        {
-            "id": regulation.id,
-            "title": regulation.title,
-            "circular_number": regulation.circular_number,
-            "published_date": regulation.published_date,
-            "effective_date": regulation.effective_date,
-            "source_url": regulation.source_url,
-            "status": regulation.status,
-            "summary": regulation.summary,
-        }
+        regulation_response(regulation)
         for regulation in regulations
     ]
 
@@ -61,14 +90,7 @@ def get_regulation(
     )
 
     return {
-        "id": regulation.id,
-        "title": regulation.title,
-        "circular_number": regulation.circular_number,
-        "published_date": regulation.published_date,
-        "effective_date": regulation.effective_date,
-        "source_url": regulation.source_url,
-        "status": regulation.status,
-        "summary": regulation.summary,
+        **regulation_response(regulation),
         "latest_version": (
             {
                 "id": latest_version.id,
