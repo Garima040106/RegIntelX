@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
 from backend.app.models import Regulation, RegulatorySource
+from backend.app.models.regulation_version import RegulationVersion
 from backend.app.ingestion.document_downloader import download_document
 from backend.app.ingestion.pdf_extractor import extract_pdf_text
 from backend.app.ingestion.metadata_extractor import extract_metadata
@@ -73,6 +74,22 @@ def process_rbi(
 
     for regulation in regulations:
         try:
+            # Do not download a document that has already been processed.
+            existing_version = db.scalar(
+                select(RegulationVersion)
+                .where(
+                    RegulationVersion.document_url
+                    == regulation.source_url
+                )
+                .order_by(
+                    RegulationVersion.version_number.desc()
+                )
+            )
+
+            if existing_version:
+                skipped += 1
+                continue
+
             document = download_document(
                 regulation.source_url
             )
