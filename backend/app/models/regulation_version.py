@@ -39,7 +39,7 @@ class RegulationVersion(Base):
     )
 
     embedding: Mapped[list[float] | None] = mapped_column(
-        Vector(768),
+        Vector(384),
         nullable=True,
     )
 
