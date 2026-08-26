@@ -106,8 +106,56 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("Checking...");
   const [search, setSearch] = useState("");
+  const [semanticResults, setSemanticResults] = useState<Regulation[]>([]);
+  const [semanticLoading, setSemanticLoading] = useState(false);
   const [selectedChange, setSelectedChange] =
     useState<string | null>(null);
+
+  useEffect(() => {
+    const query = search.trim();
+
+    if (!query) {
+      setSemanticResults([]);
+      setSemanticLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setSemanticLoading(true);
+
+        const response = await fetch(
+          `${API_URL}/api/v1/regulations/semantic-search?q=${encodeURIComponent(query)}&limit=8`
+        );
+
+        if (!response.ok) {
+          throw new Error("Semantic search failed");
+        }
+
+        const data = await response.json();
+
+        setSemanticResults(
+          data.map((item: any) => ({
+            id: item.regulation_id,
+            title: item.title,
+            circular_number: item.circular_number,
+            published_date: item.published_date,
+            effective_date: item.effective_date,
+            source_url: item.source_url,
+            status: "active",
+            summary: item.evidence,
+          }))
+        );
+      } catch (error) {
+        console.error("Semantic search error:", error);
+        setSemanticResults([]);
+      } finally {
+        setSemanticLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   async function loadData() {
     try {
@@ -233,22 +281,12 @@ export default function Home() {
     : 0;
 
   const filteredRegulations = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    if (search.trim()) {
+      return semanticResults.slice(0, 8);
+    }
 
-    if (!query) return regulations.slice(0, 8);
-
-    return regulations
-      .filter(
-        (regulation) =>
-          regulation.title
-            ?.toLowerCase()
-            .includes(query) ||
-          regulation.circular_number
-            ?.toLowerCase()
-            .includes(query)
-      )
-      .slice(0, 8);
-  }, [regulations, search]);
+    return regulations.slice(0, 8);
+  }, [regulations, search, semanticResults]);
 
   const visibleMaps = selectedChange
     ? maps.filter(
@@ -708,7 +746,7 @@ export default function Home() {
                 onChange={(event) =>
                   setSearch(event.target.value)
                 }
-                placeholder="Search by regulation title or circular number..."
+                placeholder="Search regulations semantically..."
                 className="w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-400"
               />
             </div>
