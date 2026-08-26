@@ -1,9 +1,9 @@
 import os
-import requests
+
+from huggingface_hub import InferenceClient
 
 
 MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
-API_URL = f"https://router.huggingface.co/hf-inference/models/{MODEL_NAME}"
 
 
 def generate_embedding(text: str) -> list[float]:
@@ -15,37 +15,20 @@ def generate_embedding(text: str) -> list[float]:
     if not token:
         raise RuntimeError("HF_TOKEN environment variable is not set")
 
-    response = requests.post(
-        API_URL,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "inputs": text,
-            "normalize": True,
-        },
-        timeout=120,
+    client = InferenceClient(
+        provider="hf-inference",
+        api_key=token,
     )
 
-    if response.status_code != 200:
-        raise RuntimeError(
-            f"Hugging Face embedding request failed: "
-            f"{response.status_code} {response.text}"
-        )
+    result = client.feature_extraction(
+        text,
+        model=MODEL_NAME,
+        normalize=True,
+    )
 
-    result = response.json()
+    embedding = result.tolist()
 
-    if not isinstance(result, list):
-        raise RuntimeError(
-            f"Unexpected Hugging Face response: {result}"
-        )
-
-    if result and isinstance(result[0], list):
-        embedding = result[0]
-    else:
-        embedding = result
-
+    # A single text should produce one 768-dimensional vector.
     if len(embedding) != 768:
         raise RuntimeError(
             f"Expected 768-dimensional embedding, got {len(embedding)}"
