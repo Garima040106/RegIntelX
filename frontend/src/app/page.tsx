@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ShieldCheck,
   FileText,
@@ -10,6 +10,10 @@ import {
   RefreshCw,
   ClipboardCheck,
   AlertTriangle,
+  Search,
+  CheckCircle2,
+  Clock3,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -32,6 +36,7 @@ type Regulation = {
   effective_date: string | null;
   source_url: string;
   status: string;
+  summary?: string | null;
 };
 
 type ComplianceMap = {
@@ -62,6 +67,37 @@ type RegulationChange = {
   created_at: string;
 };
 
+function badgeClass(value: string) {
+  const normalized = value?.toLowerCase();
+
+  if (
+    normalized === "high" ||
+    normalized === "critical"
+  ) {
+    return "bg-red-50 text-red-700 border-red-100";
+  }
+
+  if (
+    normalized === "completed" ||
+    normalized === "low"
+  ) {
+    return "bg-green-50 text-green-700 border-green-100";
+  }
+
+  if (
+    normalized === "in_progress" ||
+    normalized === "medium"
+  ) {
+    return "bg-blue-50 text-blue-700 border-blue-100";
+  }
+
+  return "bg-slate-100 text-slate-600 border-slate-200";
+}
+
+function formatStatus(value: string) {
+  return value.replaceAll("_", " ");
+}
+
 export default function Home() {
   const [sources, setSources] = useState<Source[]>([]);
   const [regulations, setRegulations] = useState<Regulation[]>([]);
@@ -69,6 +105,9 @@ export default function Home() {
   const [changes, setChanges] = useState<RegulationChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendStatus, setBackendStatus] = useState("Checking...");
+  const [search, setSearch] = useState("");
+  const [selectedChange, setSelectedChange] =
+    useState<string | null>(null);
 
   async function loadData() {
     try {
@@ -92,13 +131,20 @@ export default function Home() {
         !mapsResponse.ok ||
         !changesResponse.ok
       ) {
-        throw new Error("Failed to load data");
+        throw new Error("Failed to load API data");
       }
 
-      const sourcesData = await sourcesResponse.json();
-      const regulationsData = await regulationsResponse.json();
-      const mapsData = await mapsResponse.json();
-      const changesData = await changesResponse.json();
+      const [
+        sourcesData,
+        regulationsData,
+        mapsData,
+        changesData,
+      ] = await Promise.all([
+        sourcesResponse.json(),
+        regulationsResponse.json(),
+        mapsResponse.json(),
+        changesResponse.json(),
+      ]);
 
       setSources(
         Array.isArray(sourcesData)
@@ -149,13 +195,13 @@ export default function Home() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to update map status");
+        throw new Error("Failed to update status");
       }
 
       const updatedMap = await response.json();
 
-      setMaps((currentMaps) =>
-        currentMaps.map((map) =>
+      setMaps((current) =>
+        current.map((map) =>
           map.id === mapId ? updatedMap : map
         )
       );
@@ -165,73 +211,143 @@ export default function Home() {
   }
 
   const highImpactChanges = changes.filter(
-    (change) => change.impact_level?.toLowerCase() === "high"
+    (change) =>
+      change.impact_level?.toLowerCase() === "high"
   ).length;
 
-  const activeMaps = maps.filter(
+  const openActions = maps.filter(
     (map) => map.status !== "completed"
   ).length;
 
+  const completedActions = maps.filter(
+    (map) => map.status === "completed"
+  ).length;
+
+  const averageRisk = maps.length
+    ? Math.round(
+        maps.reduce(
+          (sum, map) => sum + Number(map.risk_score || 0),
+          0
+        ) / maps.length
+      )
+    : 0;
+
+  const filteredRegulations = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return regulations.slice(0, 8);
+
+    return regulations
+      .filter(
+        (regulation) =>
+          regulation.title
+            ?.toLowerCase()
+            .includes(query) ||
+          regulation.circular_number
+            ?.toLowerCase()
+            .includes(query)
+      )
+      .slice(0, 8);
+  }, [regulations, search]);
+
+  const visibleMaps = selectedChange
+    ? maps.filter(
+        (map) => map.change_id === selectedChange
+      )
+    : maps;
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+      <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-              <ShieldCheck size={22} />
+              <ShieldCheck size={21} />
             </div>
 
             <div>
-              <h1 className="text-xl font-semibold">RegIntelX</h1>
+              <h1 className="text-lg font-semibold">
+                RegIntelX
+              </h1>
               <p className="text-xs text-slate-500">
                 Regulatory Intelligence Platform
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                backendStatus === "Connected"
-                  ? "bg-green-500"
-                  : backendStatus === "Checking..."
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-              }`}
-            />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={loadData}
+              className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
+            >
+              <RefreshCw size={15} />
+              Refresh
+            </button>
 
-            Backend: {backendStatus}
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  backendStatus === "Connected"
+                    ? "bg-green-500"
+                    : backendStatus === "Checking..."
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
+                }`}
+              />
+              {backendStatus}
+            </div>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-6 py-8">
         <section className="mb-8">
-          <h2 className="text-3xl font-semibold tracking-tight">
-            Regulatory Intelligence
-          </h2>
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+            <div>
+              <p className="mb-2 text-sm font-medium text-slate-500">
+                Compliance intelligence
+              </p>
 
-          <p className="mt-2 max-w-2xl text-slate-600">
-            Discover regulatory changes, assess their impact, and track
-            compliance actions.
-          </p>
+              <h2 className="text-3xl font-semibold tracking-tight">
+                Regulatory command center
+              </h2>
+
+              <p className="mt-2 max-w-2xl text-slate-600">
+                Detect regulatory changes, understand their impact,
+                and turn them into trackable compliance actions.
+              </p>
+            </div>
+
+            <div className="rounded-xl border bg-white px-4 py-3 text-sm shadow-sm">
+              <div className="flex items-center gap-2 text-slate-500">
+                <Activity size={15} />
+                System status
+              </div>
+              <p className="mt-1 font-medium">
+                {backendStatus === "Connected"
+                  ? "API operational"
+                  : backendStatus}
+              </p>
+            </div>
+          </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Regulatory Sources
+                Sources
               </span>
-              <Database size={20} className="text-slate-400" />
+              <Database
+                size={19}
+                className="text-slate-400"
+              />
             </div>
-
             <p className="text-3xl font-semibold">
               {sources.length}
             </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Connected sources
+            <p className="mt-1 text-xs text-slate-500">
+              Registered sources
             </p>
           </div>
 
@@ -240,31 +356,33 @@ export default function Home() {
               <span className="text-sm text-slate-500">
                 Regulations
               </span>
-              <FileText size={20} className="text-slate-400" />
+              <FileText
+                size={19}
+                className="text-slate-400"
+              />
             </div>
-
             <p className="text-3xl font-semibold">
               {regulations.length}
             </p>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Currently stored
+            <p className="mt-1 text-xs text-slate-500">
+              Documents indexed
             </p>
           </div>
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Regulatory Changes
+                Changes
               </span>
-              <AlertTriangle size={20} className="text-slate-400" />
+              <AlertTriangle
+                size={19}
+                className="text-slate-400"
+              />
             </div>
-
             <p className="text-3xl font-semibold">
               {changes.length}
             </p>
-
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-xs text-slate-500">
               {highImpactChanges} high impact
             </p>
           </div>
@@ -272,196 +390,258 @@ export default function Home() {
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Open Compliance Actions
+                Open actions
               </span>
-              <ClipboardCheck size={20} className="text-slate-400" />
+              <ClipboardCheck
+                size={19}
+                className="text-slate-400"
+              />
             </div>
-
             <p className="text-3xl font-semibold">
-              {activeMaps}
+              {openActions}
             </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {completedActions} completed
+            </p>
+          </div>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Pending or in progress
+          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm text-slate-500">
+                Avg. risk
+              </span>
+              <AlertTriangle
+                size={19}
+                className="text-slate-400"
+              />
+            </div>
+            <p className="text-3xl font-semibold">
+              {averageRisk}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Across compliance actions
             </p>
           </div>
         </section>
 
         <section className="mt-8 rounded-2xl border bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b px-6 py-5">
-            <div>
-              <h3 className="font-semibold">
-                Detected Regulatory Changes
-              </h3>
+          <div className="border-b px-6 py-5">
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+              <div>
+                <h3 className="font-semibold">
+                  Detected regulatory changes
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Review what changed and which business domains
+                  are affected.
+                </p>
+              </div>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Changes detected between regulatory document versions.
-              </p>
+              {selectedChange && (
+                <button
+                  onClick={() => setSelectedChange(null)}
+                  className="text-sm text-slate-500 hover:text-slate-900"
+                >
+                  Show all changes
+                </button>
+              )}
             </div>
-
-            <button
-              onClick={loadData}
-              className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
-            >
-              <RefreshCw size={15} />
-              Refresh
-            </button>
           </div>
 
           <div className="divide-y">
             {loading ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
+              <div className="px-6 py-10 text-sm text-slate-500">
                 Loading regulatory changes...
               </div>
             ) : changes.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
+              <div className="px-6 py-10 text-sm text-slate-500">
                 No regulatory changes detected.
               </div>
             ) : (
-              changes.map((change) => (
-                <div
-                  key={change.id}
-                  className="px-6 py-5"
-                >
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            change.impact_level?.toLowerCase() === "high"
-                              ? "bg-red-50 text-red-700"
-                              : change.impact_level?.toLowerCase() === "low"
-                                ? "bg-green-50 text-green-700"
-                                : "bg-yellow-50 text-yellow-700"
-                          }`}
-                        >
-                          {change.impact_level} impact
-                        </span>
+              changes.map((change) => {
+                const isSelected =
+                  selectedChange === change.id;
 
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                          {change.change_type}
-                        </span>
-                      </div>
-
-                      <p className="mt-3 font-medium">
-                        {change.change_summary}
-                      </p>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {change.affected_domains?.map((domain) => (
+                return (
+                  <button
+                    key={change.id}
+                    onClick={() =>
+                      setSelectedChange(
+                        isSelected ? null : change.id
+                      )
+                    }
+                    className={`block w-full px-6 py-5 text-left transition hover:bg-slate-50 ${
+                      isSelected ? "bg-slate-50" : ""
+                    }`}
+                  >
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span
-                            key={domain}
-                            className="rounded-md border bg-white px-2 py-1 text-xs text-slate-600"
+                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                              change.impact_level
+                            )}`}
                           >
-                            {domain}
+                            {change.impact_level} impact
                           </span>
-                        ))}
+
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                            {formatStatus(
+                              change.change_type
+                            )}
+                          </span>
+                        </div>
+
+                        <p className="mt-3 font-medium">
+                          {change.change_summary}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {change.affected_domains?.map(
+                            (domain) => (
+                              <span
+                                key={domain}
+                                className="rounded-md border bg-white px-2 py-1 text-xs text-slate-600"
+                              >
+                                {domain}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 lg:text-right">
+                        <p className="text-xs text-slate-500">
+                          {change.ai_confidence !== null
+                            ? `AI confidence: ${change.ai_confidence}`
+                            : "AI confidence unavailable"}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {new Date(
+                            change.created_at
+                          ).toLocaleDateString()}
+                        </p>
+                        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-slate-700 lg:justify-end">
+                          View affected actions
+                          <ArrowUpRight size={13} />
+                        </p>
                       </div>
                     </div>
-
-                    <div className="shrink-0 text-right text-xs text-slate-500">
-                      <p>
-                        {change.ai_confidence !== null
-                          ? `AI confidence: ${change.ai_confidence}`
-                          : "AI confidence unavailable"}
-                      </p>
-
-                      <p className="mt-1">
-                        {new Date(
-                          change.created_at
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
+                  </button>
+                );
+              })
             )}
           </div>
         </section>
 
         <section className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
-            <h3 className="font-semibold">
-              Compliance Actions
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Action items generated from detected regulatory changes.
-            </p>
+            <div>
+              <h3 className="font-semibold">
+                Compliance action queue
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Actions generated from regulatory changes,
+                including required evidence and deadlines.
+              </p>
+            </div>
           </div>
 
           <div className="divide-y">
             {loading ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
+              <div className="px-6 py-10 text-sm text-slate-500">
                 Loading compliance actions...
               </div>
-            ) : maps.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
-                No compliance actions generated.
+            ) : visibleMaps.length === 0 ? (
+              <div className="px-6 py-10 text-sm text-slate-500">
+                No compliance actions found.
               </div>
             ) : (
-              maps.map((map) => (
+              visibleMaps.map((map) => (
                 <div
                   key={map.id}
-                  className="px-6 py-5"
+                  className="px-6 py-6"
                 >
-                  <div className="flex items-start justify-between gap-6">
-                    <div>
+                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-medium">
                           {map.title}
                         </h4>
 
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            map.status === "completed"
-                              ? "bg-green-50 text-green-700"
-                              : map.status === "in_progress"
-                                ? "bg-blue-50 text-blue-700"
-                                : "bg-slate-100 text-slate-600"
-                          }`}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                            map.status
+                          )}`}
                         >
-                          {map.status.replace("_", " ")}
+                          {formatStatus(map.status)}
                         </span>
 
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            map.priority === "high"
-                              ? "bg-red-50 text-red-700"
-                              : map.priority === "low"
-                                ? "bg-green-50 text-green-700"
-                                : "bg-yellow-50 text-yellow-700"
-                          }`}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                            map.priority
+                          )}`}
                         >
                           {map.priority} priority
                         </span>
                       </div>
 
-                      <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                         {map.description}
                       </p>
 
-                      <p className="mt-2 text-xs text-slate-500">
-                        Evidence: {map.required_evidence}
-                      </p>
+                      <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                        <div className="flex items-start gap-3">
+                          <FileText
+                            size={17}
+                            className="mt-0.5 shrink-0 text-slate-400"
+                          />
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                              Required evidence
+                            </p>
+                            <p className="mt-1 text-sm text-slate-700">
+                              {map.required_evidence}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium">
-                        Risk {map.risk_score}
-                      </p>
+                    <div className="w-full shrink-0 rounded-xl border bg-white p-4 xl:w-56">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500">
+                          Risk score
+                        </span>
+                        <span className="text-lg font-semibold">
+                          {map.risk_score}
+                        </span>
+                      </div>
 
-                      <p className="mt-1 text-xs text-slate-500">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-slate-900"
+                          style={{
+                            width: `${Math.min(
+                              Number(map.risk_score),
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+                        <Clock3 size={14} />
                         Due{" "}
                         {map.due_date
                           ? new Date(
                               map.due_date
                             ).toLocaleDateString()
                           : "Not set"}
-                      </p>
+                      </div>
 
                       {map.status !== "completed" && (
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-4">
                           {map.status === "pending" && (
                             <button
                               onClick={() =>
@@ -470,9 +650,9 @@ export default function Home() {
                                   "in_progress"
                                 )
                               }
-                              className="rounded-lg border px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                              className="w-full rounded-lg border px-3 py-2 text-xs font-medium hover:bg-slate-50"
                             >
-                              Start Review
+                              Start review
                             </button>
                           )}
 
@@ -484,11 +664,19 @@ export default function Home() {
                                   "completed"
                                 )
                               }
-                              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                              className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
                             >
-                              Complete
+                              <CheckCircle2 size={14} />
+                              Complete action
                             </button>
                           )}
+                        </div>
+                      )}
+
+                      {map.status === "completed" && (
+                        <div className="mt-4 flex items-center gap-2 text-xs font-medium text-green-700">
+                          <CheckCircle2 size={14} />
+                          Action completed
                         </div>
                       )}
                     </div>
@@ -502,48 +690,91 @@ export default function Home() {
         <section className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
             <h3 className="font-semibold">
-              Regulatory Sources
+              Regulatory documents
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              Sources currently registered in RegIntelX.
+              Search and open regulations currently stored in
+              RegIntelX.
             </p>
+
+            <div className="relative mt-4 max-w-xl">
+              <Search
+                size={17}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="Search by regulation title or circular number..."
+                className="w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-400"
+              />
+            </div>
           </div>
 
           <div className="divide-y">
             {loading ? (
               <div className="px-6 py-8 text-sm text-slate-500">
-                Loading sources...
+                Loading regulations...
               </div>
-            ) : sources.length === 0 ? (
+            ) : filteredRegulations.length === 0 ? (
               <div className="px-6 py-8 text-sm text-slate-500">
-                No regulatory sources found.
+                No matching regulations found.
               </div>
             ) : (
-              sources.map((source) => (
+              filteredRegulations.map((regulation) => (
                 <div
-                  key={source.id}
-                  className="flex items-center justify-between px-6 py-5"
+                  key={regulation.id}
+                  className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="font-medium">
-                      {source.name}
+                      {regulation.title}
                     </h4>
 
-                    <p className="mt-1 text-sm text-slate-500">
-                      {source.authority}
-                    </p>
+                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                      <span>
+                        {regulation.circular_number
+                          ? `Circular ${regulation.circular_number}`
+                          : "Circular number unavailable"}
+                      </span>
+
+                      {regulation.published_date && (
+                        <span>
+                          Published{" "}
+                          {new Date(
+                            regulation.published_date
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+
+                      <span>
+                        Status: {regulation.status}
+                      </span>
+                    </div>
                   </div>
 
-                  <a
-                    href={source.base_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-                  >
-                    Visit source
-                    <ExternalLink size={15} />
-                  </a>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <Link
+                      href={`/regulations/${regulation.id}`}
+                      className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
+                    >
+                      View document
+                      <ExternalLink size={14} />
+                    </Link>
+
+                    <a
+                      href={regulation.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
+                    >
+                      Source
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
                 </div>
               ))
             )}
@@ -553,57 +784,52 @@ export default function Home() {
         <section className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
             <h3 className="font-semibold">
-              Regulations
+              Regulatory sources
             </h3>
-
             <p className="mt-1 text-sm text-slate-500">
-              Regulatory documents currently stored in RegIntelX.
+              Authorities currently registered in RegIntelX.
             </p>
           </div>
 
-          <div className="divide-y">
-            {loading ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
-                Loading regulations...
-              </div>
-            ) : regulations.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-slate-500">
-                No regulations found.
-              </div>
-            ) : (
-              regulations.map((regulation) => (
-                <div
-                  key={regulation.id}
-                  className="flex items-center justify-between px-6 py-5"
-                >
+          <div className="grid divide-y md:grid-cols-3 md:divide-x md:divide-y-0">
+            {sources.map((source) => (
+              <div
+                key={source.id}
+                className="p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <h4 className="font-medium">
-                      {regulation.title}
+                      {source.name}
                     </h4>
-
                     <p className="mt-1 text-sm text-slate-500">
-                      {regulation.circular_number
-                        ? `Circular: ${regulation.circular_number}`
-                        : "Circular number not available"}
-                    </p>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      Status: {regulation.status}
+                      {source.authority}
                     </p>
                   </div>
 
-                  <Link
-                    href={`/regulations/${regulation.id}`}
-                    className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-                  >
-                    View document
-                    <ExternalLink size={15} />
-                  </Link>
+                  <span className="rounded-full border border-green-100 bg-green-50 px-2 py-1 text-xs text-green-700">
+                    Active
+                  </span>
                 </div>
-              ))
-            )}
+
+                <a
+                  href={source.base_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-950"
+                >
+                  Visit source
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+            ))}
           </div>
         </section>
+
+        <footer className="py-8 text-center text-xs text-slate-400">
+          RegIntelX · Regulatory intelligence and compliance
+          tracking
+        </footer>
       </div>
     </main>
   );
