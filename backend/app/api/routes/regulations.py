@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.database import get_db
 from backend.app.models.regulation import Regulation
 from backend.app.models.regulation_version import RegulationVersion
-from backend.app.services.embedding_service import generate_embedding
+from backend.app.services.semantic_search import semantic_search
 
 router = APIRouter(
     prefix="/regulations",
@@ -27,43 +27,20 @@ def regulation_response(regulation):
         "status": regulation.status,
         "summary": regulation.summary,
     }
+
+
 @router.get("/semantic-search")
 def semantic_search_regulations(
     q: str = Query(..., min_length=2),
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    query_embedding = generate_embedding(q)
-
-    distance = RegulationVersion.embedding.cosine_distance(
-        query_embedding
+    return semantic_search(
+        db=db,
+        query=q,
+        limit=limit,
     )
 
-    results = db.execute(
-        select(
-            Regulation,
-            RegulationVersion,
-            distance.label("distance"),
-        )
-        .join(
-            RegulationVersion,
-            RegulationVersion.regulation_id == Regulation.id,
-        )
-        .where(
-            RegulationVersion.embedding.is_not(None)
-        )
-        .order_by(distance)
-        .limit(limit)
-    ).all()
-
-    return [
-        {
-            **regulation_response(regulation),
-            "version_number": version.version_number,
-            "similarity": round(1 - distance_value, 4),
-        }
-        for regulation, version, distance_value in results
-    ]
 
 @router.get("/search")
 def search_regulations(

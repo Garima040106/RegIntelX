@@ -7,6 +7,8 @@ from sqlalchemy import text
 from backend.app.api.routes.sources import router as sources_router
 from backend.app.api.routes.regulations import router as regulations_router
 from backend.app.api.routes.ingestion import router as ingestion_router
+from backend.app.api.routes.changes import router as changes_router
+from backend.app.api.routes.maps import router as maps_router
 from backend.app.core.database import engine
 from backend.app.core.rate_limit import limiter
 
@@ -47,6 +49,17 @@ app.include_router(
     ingestion_router,
     prefix="/api/v1",
 )
+
+app.include_router(
+    changes_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    maps_router,
+    prefix="/api/v1/maps",
+)
+
 
 
 @app.get("/health")

@@ -79,3 +79,9 @@ class Regulation(Base):
         back_populates="regulation",
         cascade="all, delete-orphan",
     )
+
+    changes = relationship(
+	"RegulationChange",
+	back_populates="regulation",
+	cascade="all, delete-orphan",
+    )
