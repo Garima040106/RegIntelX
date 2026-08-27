@@ -637,34 +637,39 @@ export default function Home() {
                         </span>
                       </div>
 
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                         {map.description}
                       </p>
 
-                      <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                           Required evidence
                         </p>
-                        <p className="mt-1 text-sm text-slate-700">
+                        <p className="mt-1 text-sm leading-5 text-slate-700">
                           {map.required_evidence}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 flex-col gap-2 lg:min-w-36 lg:items-end">
-                      <div className="text-right">
+                    <div className="flex shrink-0 flex-col gap-3 lg:min-w-40 lg:items-end">
+                      <div className="rounded-xl border bg-white px-4 py-3 text-right">
                         <p className="text-xs text-slate-500">
                           Risk score
                         </p>
-                        <p className="text-2xl font-semibold">
+                        <p className="mt-1 text-2xl font-semibold">
                           {Math.round(Number(map.risk_score || 0))}
                         </p>
                       </div>
 
                       {map.due_date && (
-                        <p className="text-xs text-slate-500">
-                          Due {new Date(map.due_date).toLocaleDateString()}
-                        </p>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-400">
+                            Deadline
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-slate-600">
+                            {new Date(map.due_date).toLocaleDateString()}
+                          </p>
+                        </div>
                       )}
 
                       {map.status !== "completed" && (
@@ -677,7 +682,7 @@ export default function Home() {
                                 : "completed"
                             )
                           }
-                          className="rounded-lg border bg-white px-3 py-2 text-xs font-medium hover:bg-slate-50"
+                          className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-medium text-white hover:bg-slate-800 lg:w-auto"
                         >
                           {map.status === "pending"
                             ? "Start action"
