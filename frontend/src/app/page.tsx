@@ -37,6 +37,8 @@ type Regulation = {
   source_url: string;
   status: string;
   summary?: string | null;
+  similarity?: number;
+  evidence?: string | null;
 };
 
 type ComplianceMap = {
@@ -782,7 +784,21 @@ export default function Home() {
                       <span>
                         Status: {regulation.status}
                       </span>
+
+                      {search.trim() &&
+                        regulation.similarity !== undefined && (
+                          <span className="font-medium text-slate-700">
+                            Relevance{" "}
+                            {(regulation.similarity * 100).toFixed(1)}%
+                          </span>
+                        )}
                     </div>
+
+                    {search.trim() && regulation.evidence && (
+                      <p className="mt-3 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-500">
+                        {regulation.evidence.replace(/\\s+/g, " ").trim()}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
