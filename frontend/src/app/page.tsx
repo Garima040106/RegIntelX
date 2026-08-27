@@ -338,6 +338,35 @@ export default function Home() {
         </div>
       </header>
 
+      <div className="sticky top-[73px] z-10 border-b bg-slate-50/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-6 py-2">
+          <a
+            href="#changes"
+            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
+          >
+            Changes
+          </a>
+          <a
+            href="#actions"
+            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
+          >
+            Compliance actions
+          </a>
+          <a
+            href="#regulations"
+            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
+          >
+            Regulations
+          </a>
+          <a
+            href="#sources"
+            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
+          >
+            Sources
+          </a>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-7xl px-6 py-8">
         <section className="mb-8">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
@@ -370,52 +399,28 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm text-slate-500">
-                Sources
-              </span>
-              <Database
-                size={19}
-                className="text-slate-400"
-              />
-            </div>
-            <p className="text-3xl font-semibold">
-              {sources.length}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Registered sources
-            </p>
-          </div>
-
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
                 Regulations
               </span>
-              <FileText
-                size={19}
-                className="text-slate-400"
-              />
+              <FileText size={19} className="text-slate-400" />
             </div>
             <p className="text-3xl font-semibold">
               {regulations.length}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Documents indexed
+              Documents being monitored
             </p>
           </div>
 
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Changes
+                Changes detected
               </span>
-              <AlertTriangle
-                size={19}
-                className="text-slate-400"
-              />
+              <AlertTriangle size={19} className="text-slate-400" />
             </div>
             <p className="text-3xl font-semibold">
               {changes.length}
@@ -430,10 +435,7 @@ export default function Home() {
               <span className="text-sm text-slate-500">
                 Open actions
               </span>
-              <ClipboardCheck
-                size={19}
-                className="text-slate-400"
-              />
+              <ClipboardCheck size={19} className="text-slate-400" />
             </div>
             <p className="text-3xl font-semibold">
               {openActions}
@@ -446,12 +448,9 @@ export default function Home() {
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm text-slate-500">
-                Avg. risk
+                Average risk
               </span>
-              <AlertTriangle
-                size={19}
-                className="text-slate-400"
-              />
+              <Activity size={19} className="text-slate-400" />
             </div>
             <p className="text-3xl font-semibold">
               {averageRisk}
@@ -462,23 +461,25 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border bg-white shadow-sm">
+        <section id="changes" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
               <div>
-                <h3 className="font-semibold">
-                  Detected regulatory changes
-                </h3>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-slate-500" />
+                  <h3 className="font-semibold">
+                    Regulatory changes
+                  </h3>
+                </div>
                 <p className="mt-1 text-sm text-slate-500">
-                  Review what changed and which business domains
-                  are affected.
+                  See what changed, assess the impact, and review the actions it created.
                 </p>
               </div>
 
               {selectedChange && (
                 <button
                   onClick={() => setSelectedChange(null)}
-                  className="text-sm text-slate-500 hover:text-slate-900"
+                  className="rounded-lg border px-3 py-2 text-xs font-medium hover:bg-slate-50"
                 >
                   Show all changes
                 </button>
@@ -497,23 +498,17 @@ export default function Home() {
               </div>
             ) : (
               changes.map((change) => {
-                const isSelected =
-                  selectedChange === change.id;
+                const isSelected = selectedChange === change.id;
 
                 return (
-                  <button
+                  <div
                     key={change.id}
-                    onClick={() =>
-                      setSelectedChange(
-                        isSelected ? null : change.id
-                      )
-                    }
-                    className={`block w-full px-6 py-5 text-left transition hover:bg-slate-50 ${
-                      isSelected ? "bg-slate-50" : ""
+                    className={`px-6 py-5 transition ${
+                      isSelected ? "bg-slate-50" : "hover:bg-slate-50/70"
                     }`}
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
@@ -523,89 +518,115 @@ export default function Home() {
                             {change.impact_level} impact
                           </span>
 
-                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
-                            {formatStatus(
-                              change.change_type
-                            )}
+                          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600">
+                            {formatStatus(change.change_type)}
                           </span>
-                        </div>
 
-                        <p className="mt-3 font-medium">
-                          {change.change_summary}
-                        </p>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {change.affected_domains?.map(
+                          {change.affected_domains?.slice(0, 4).map(
                             (domain) => (
                               <span
                                 key={domain}
-                                className="rounded-md border bg-white px-2 py-1 text-xs text-slate-600"
+                                className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500"
                               >
                                 {domain}
                               </span>
                             )
                           )}
                         </div>
+
+                        <div className="mt-3">
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                            What changed
+                          </p>
+                          <p className="mt-1 max-w-3xl font-medium leading-6 text-slate-900">
+                            {change.change_summary}
+                          </p>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-500">
+                          <span>
+                            {change.ai_confidence !== null
+                              ? `AI confidence: ${change.ai_confidence}`
+                              : "AI confidence unavailable"}
+                          </span>
+                          <span>
+                            Detected{" "}
+                            {new Date(
+                              change.created_at
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="shrink-0 lg:text-right">
-                        <p className="text-xs text-slate-500">
-                          {change.ai_confidence !== null
-                            ? `AI confidence: ${change.ai_confidence}`
-                            : "AI confidence unavailable"}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">
-                          {new Date(
-                            change.created_at
-                          ).toLocaleDateString()}
-                        </p>
-                        <p className="mt-2 flex items-center gap-1 text-xs font-medium text-slate-700 lg:justify-end">
-                          View affected actions
-                          <ArrowUpRight size={13} />
-                        </p>
-                      </div>
+                      <button
+                        onClick={() =>
+                          setSelectedChange(
+                            isSelected ? null : change.id
+                          )
+                        }
+                        className="flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-white"
+                      >
+                        {isSelected
+                          ? "Hide actions"
+                          : "View affected actions"}
+                        <ArrowUpRight size={14} />
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border bg-white shadow-sm">
+        <section id="actions" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
-            <div>
-              <h3 className="font-semibold">
-                Compliance action queue
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Actions generated from regulatory changes,
-                including required evidence and deadlines.
-              </p>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <ClipboardCheck size={18} className="text-slate-500" />
+                  <h3 className="font-semibold">
+                    Compliance actions
+                  </h3>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">
+                  Review and track the actions created from regulatory changes.
+                </p>
+              </div>
+
+              {selectedChange && (
+                <span className="rounded-full border bg-slate-50 px-3 py-1 text-xs text-slate-600">
+                  Showing actions for selected change
+                </span>
+              )}
             </div>
           </div>
 
           <div className="divide-y">
-            {loading ? (
+            {visibleMaps.length === 0 ? (
               <div className="px-6 py-10 text-sm text-slate-500">
-                Loading compliance actions...
-              </div>
-            ) : visibleMaps.length === 0 ? (
-              <div className="px-6 py-10 text-sm text-slate-500">
-                No compliance actions found.
+                Select a regulatory change above to view its compliance actions.
               </div>
             ) : (
               visibleMaps.map((map) => (
                 <div
                   key={map.id}
-                  className="px-6 py-6"
+                  className="px-6 py-5"
                 >
-                  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-medium">
                           {map.title}
                         </h4>
+
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                            map.priority
+                          )}`}
+                        >
+                          {formatStatus(map.priority)}
+                        </span>
 
                         <span
                           className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
@@ -614,108 +635,54 @@ export default function Home() {
                         >
                           {formatStatus(map.status)}
                         </span>
-
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
-                            map.priority
-                          )}`}
-                        >
-                          {map.priority} priority
-                        </span>
                       </div>
 
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
                         {map.description}
                       </p>
 
                       <div className="mt-4 rounded-xl bg-slate-50 p-4">
-                        <div className="flex items-start gap-3">
-                          <FileText
-                            size={17}
-                            className="mt-0.5 shrink-0 text-slate-400"
-                          />
-                          <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                              Required evidence
-                            </p>
-                            <p className="mt-1 text-sm text-slate-700">
-                              {map.required_evidence}
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          Required evidence
+                        </p>
+                        <p className="mt-1 text-sm text-slate-700">
+                          {map.required_evidence}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="w-full shrink-0 rounded-xl border bg-white p-4 xl:w-56">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">
+                    <div className="flex shrink-0 flex-col gap-2 lg:min-w-36 lg:items-end">
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">
                           Risk score
-                        </span>
-                        <span className="text-lg font-semibold">
-                          {map.risk_score}
-                        </span>
+                        </p>
+                        <p className="text-2xl font-semibold">
+                          {Math.round(Number(map.risk_score || 0))}
+                        </p>
                       </div>
 
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className="h-full rounded-full bg-slate-900"
-                          style={{
-                            width: `${Math.min(
-                              Number(map.risk_score),
-                              100
-                            )}%`,
-                          }}
-                        />
-                      </div>
-
-                      <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
-                        <Clock3 size={14} />
-                        Due{" "}
-                        {map.due_date
-                          ? new Date(
-                              map.due_date
-                            ).toLocaleDateString()
-                          : "Not set"}
-                      </div>
-
-                      {map.status !== "completed" && (
-                        <div className="mt-4">
-                          {map.status === "pending" && (
-                            <button
-                              onClick={() =>
-                                updateMapStatus(
-                                  map.id,
-                                  "in_progress"
-                                )
-                              }
-                              className="w-full rounded-lg border px-3 py-2 text-xs font-medium hover:bg-slate-50"
-                            >
-                              Start review
-                            </button>
-                          )}
-
-                          {map.status === "in_progress" && (
-                            <button
-                              onClick={() =>
-                                updateMapStatus(
-                                  map.id,
-                                  "completed"
-                                )
-                              }
-                              className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
-                            >
-                              <CheckCircle2 size={14} />
-                              Complete action
-                            </button>
-                          )}
-                        </div>
+                      {map.due_date && (
+                        <p className="text-xs text-slate-500">
+                          Due {new Date(map.due_date).toLocaleDateString()}
+                        </p>
                       )}
 
-                      {map.status === "completed" && (
-                        <div className="mt-4 flex items-center gap-2 text-xs font-medium text-green-700">
-                          <CheckCircle2 size={14} />
-                          Action completed
-                        </div>
+                      {map.status !== "completed" && (
+                        <button
+                          onClick={() =>
+                            updateMapStatus(
+                              map.id,
+                              map.status === "pending"
+                                ? "in_progress"
+                                : "completed"
+                            )
+                          }
+                          className="rounded-lg border bg-white px-3 py-2 text-xs font-medium hover:bg-slate-50"
+                        >
+                          {map.status === "pending"
+                            ? "Start action"
+                            : "Mark complete"}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -725,7 +692,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border bg-white shadow-sm">
+        <section id="regulations" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
             <h3 className="font-semibold">
               Regulatory documents
@@ -736,7 +703,7 @@ export default function Home() {
               RegIntelX.
             </p>
 
-            <div className="relative mt-4 max-w-xl">
+            <div className="relative mt-4 max-w-2xl">
               <Search
                 size={17}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -746,10 +713,20 @@ export default function Home() {
                 onChange={(event) =>
                   setSearch(event.target.value)
                 }
-                placeholder="Search regulations semantically..."
-                className="w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-slate-400"
+                placeholder="Search by concept, requirement, or circular number..."
+                className="w-full rounded-xl border bg-white py-3 pl-10 pr-12 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               />
+              {semanticLoading && (
+                <RefreshCw
+                  size={16}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-400"
+                />
+              )}
             </div>
+
+            <p className="mt-2 text-xs text-slate-400">
+              Semantic search understands regulatory meaning, not just exact words.
+            </p>
           </div>
 
           <div className="divide-y">
@@ -819,7 +796,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border bg-white shadow-sm">
+        <section id="sources" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
             <h3 className="font-semibold">
               Regulatory sources
