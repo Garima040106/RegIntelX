@@ -681,22 +681,35 @@ export default function Home() {
                         </div>
                       )}
 
-                      {map.status !== "completed" && (
-                        <button
-                          onClick={() =>
-                            updateMapStatus(
-                              map.id,
-                              map.status === "pending"
-                                ? "in_progress"
-                                : "completed"
-                            )
-                          }
-                          className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-medium text-white hover:bg-slate-800 lg:w-auto"
-                        >
-                          {map.status === "pending"
-                            ? "Start action"
-                            : "Mark complete"}
-                        </button>
+                      {map.status !== "completed" ? (
+                        <>
+                          <p className="text-xs text-slate-400">
+                            {map.status === "pending"
+                              ? "Ready to begin"
+                              : "Action in progress"}
+                          </p>
+
+                          <button
+                            onClick={() =>
+                              updateMapStatus(
+                                map.id,
+                                map.status === "pending"
+                                  ? "in_progress"
+                                  : "completed"
+                              )
+                            }
+                            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-slate-800 lg:w-auto"
+                          >
+                            {map.status === "pending"
+                              ? "Start action"
+                              : "Mark as completed"}
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+                          <CheckCircle2 size={14} />
+                          Completed
+                        </div>
                       )}
                     </div>
                   </div>
