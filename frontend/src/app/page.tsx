@@ -661,6 +661,13 @@ export default function Home() {
                         <p className="mt-1 text-2xl font-semibold">
                           {Math.round(Number(map.risk_score || 0))}
                         </p>
+                        <p className="mt-1 text-xs font-medium text-slate-500">
+                          {Number(map.risk_score || 0) >= 75
+                            ? "High risk"
+                            : Number(map.risk_score || 0) >= 40
+                              ? "Medium risk"
+                              : "Low risk"}
+                        </p>
                       </div>
 
                       {map.due_date && (
