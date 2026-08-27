@@ -699,16 +699,25 @@ export default function Home() {
 
         <section id="regulations" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
-            <h3 className="font-semibold">
-              Regulatory documents
-            </h3>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="font-semibold">
+                  Regulatory intelligence
+                </h3>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Search and open regulations currently stored in
-              RegIntelX.
-            </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Search regulations by meaning, requirement, or circular number.
+                </p>
+              </div>
 
-            <div className="relative mt-4 max-w-2xl">
+              {search.trim() && !semanticLoading && (
+                <span className="hidden rounded-full border bg-slate-50 px-3 py-1 text-xs text-slate-500 sm:inline-flex">
+                  {filteredRegulations.length} results
+                </span>
+              )}
+            </div>
+
+            <div className="relative mt-5 max-w-3xl">
               <Search
                 size={17}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -719,7 +728,7 @@ export default function Home() {
                   setSearch(event.target.value)
                 }
                 placeholder="Search by concept, requirement, or circular number..."
-                className="w-full rounded-xl border bg-white py-3 pl-10 pr-12 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                className="w-full rounded-xl border bg-white py-3.5 pl-10 pr-12 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
               />
               {semanticLoading && (
                 <RefreshCw
