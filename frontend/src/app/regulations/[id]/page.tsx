@@ -57,18 +57,36 @@ export default function RegulationPage({ params }: Props) {
   const { changes, maps, sources } = useRegIntel();
 
   useEffect(() => {
-    async function loadRegulation() {
+    let cancelled = false;
+
+    async function run() {
       try {
+        setError("");
+        setLoading(true);
+
         const { id } = await params;
-        setRegulation(await fetchRegulation(id));
+        const fetchedRegulation = await fetchRegulation(id);
+
+        if (!cancelled) {
+          setRegulation(fetchedRegulation);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load regulation");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load regulation");
+          setRegulation(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
-    void loadRegulation();
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params]);
 
   const matchedSource = useMemo(
@@ -119,13 +137,39 @@ export default function RegulationPage({ params }: Props) {
             {error || "The requested regulation could not be found."}
           </p>
 
-          <Link
-            href="/regulations"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
-          >
-            Return to regulations
-            <ArrowUpRight size={15} />
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setLoading(true);
+
+                void (async () => {
+                  try {
+                    const { id } = await params;
+                    setRegulation(await fetchRegulation(id));
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Failed to load regulation");
+                    setRegulation(null);
+                  } finally {
+                    setLoading(false);
+                  }
+                })();
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+            >
+              Retry
+              <ArrowUpRight size={15} />
+            </button>
+
+            <Link
+              href="/regulations"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+            >
+              Return to regulations
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
         </div>
       </>
     );
