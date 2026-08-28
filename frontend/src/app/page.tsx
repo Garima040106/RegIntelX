@@ -901,67 +901,88 @@ export default function Home() {
               filteredRegulations.map((regulation) => (
                 <div
                   key={regulation.id}
-                  className="flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between"
+                  className="px-6 py-5 transition hover:bg-slate-50/60"
                 >
-                  <div className="min-w-0">
-                    <h4 className="font-medium">
-                      {regulation.title}
-                    </h4>
-
-                    <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
-                      <span>
-                        {regulation.circular_number
-                          ? `Circular ${regulation.circular_number}`
-                          : "Circular number unavailable"}
-                      </span>
-
-                      {regulation.published_date && (
-                        <span>
-                          Published{" "}
-                          {new Date(
-                            regulation.published_date
-                          ).toLocaleDateString()}
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+                          Regulatory document
                         </span>
-                      )}
 
-                      <span>
-                        Status: {regulation.status}
-                      </span>
+                        <span className="rounded-full border border-green-100 bg-green-50 px-2.5 py-1 text-xs font-medium capitalize text-green-700">
+                          {regulation.status}
+                        </span>
 
-                      {search.trim() &&
-                        regulation.similarity !== undefined && (
-                          <span className="font-medium text-slate-700">
-                            Relevance{" "}
-                            {(regulation.similarity * 100).toFixed(1)}%
+                        {search.trim() &&
+                          regulation.similarity !== undefined && (
+                            <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                              {(regulation.similarity * 100).toFixed(1)}% relevant
+                            </span>
+                          )}
+                      </div>
+
+                      <h4 className="mt-3 text-base font-semibold text-slate-900">
+                        {regulation.title}
+                      </h4>
+
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
+                        <span>
+                          {regulation.circular_number
+                            ? `Circular ${regulation.circular_number}`
+                            : "Circular number unavailable"}
+                        </span>
+
+                        {regulation.published_date && (
+                          <span>
+                            Published{" "}
+                            {new Date(
+                              regulation.published_date
+                            ).toLocaleDateString()}
                           </span>
                         )}
+
+                        {regulation.effective_date && (
+                          <span>
+                            Effective{" "}
+                            {new Date(
+                              regulation.effective_date
+                            ).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+
+                      {search.trim() && regulation.evidence && (
+                        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                          <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
+                            Search evidence
+                          </p>
+                          <p className="mt-1 line-clamp-3 text-sm leading-6 text-slate-600">
+                            {regulation.evidence.replace(/\\s+/g, " ").trim()}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
-                    {search.trim() && regulation.evidence && (
-                      <p className="mt-3 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-500">
-                        {regulation.evidence.replace(/\\s+/g, " ").trim()}
-                      </p>
-                    )}
-                  </div>
+                    <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                      <Link
+                        href={`/regulations/${regulation.id}`}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+                      >
+                        Open intelligence
+                        <ArrowUpRight size={14} />
+                      </Link>
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <Link
-                      href={`/regulations/${regulation.id}`}
-                      className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-slate-50"
-                    >
-                      View document
-                      <ExternalLink size={14} />
-                    </Link>
-
-                    <a
-                      href={regulation.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900"
-                    >
-                      Source
-                      <ExternalLink size={14} />
-                    </a>
+                      <a
+                        href={regulation.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      >
+                        Original source
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))
