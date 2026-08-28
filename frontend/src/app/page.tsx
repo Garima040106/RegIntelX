@@ -469,6 +469,51 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="mt-6 rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-slate-500" />
+                <h3 className="font-semibold">
+                  Attention needed
+                </h3>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                Start with high-impact changes and outstanding compliance actions.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {highImpactChanges > 0 && (
+                <a
+                  href="#changes"
+                  className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+                >
+                  {highImpactChanges} high-impact change{highImpactChanges === 1 ? "" : "s"}
+                  <ArrowUpRight size={13} />
+                </a>
+              )}
+
+              {openActions > 0 && (
+                <a
+                  href="#actions"
+                  className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  {openActions} open action{openActions === 1 ? "" : "s"}
+                  <ArrowUpRight size={13} />
+                </a>
+              )}
+
+              {highImpactChanges === 0 && openActions === 0 && (
+                <span className="inline-flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+                  <CheckCircle2 size={14} />
+                  No outstanding items
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
         <section id="changes" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
             <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
