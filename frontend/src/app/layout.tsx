@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RegIntelX",
-  description: "Regulatory Intelligence Platform",
+  title: "RegIntelX | Regulatory intelligence command center",
+  description:
+    "Monitor regulatory change, assess impact, and track compliance actions in one command center.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

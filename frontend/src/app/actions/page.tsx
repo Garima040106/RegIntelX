@@ -5,7 +5,7 @@ import {
   ActionsPanel,
   MetricsGrid,
   PageIntro,
-} from "@/components/regintelx/panels";
+} from "@/components/regintelx/workspace";
 
 export default function ActionsPage() {
   const { loading, maps } = useRegIntel();

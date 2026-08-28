@@ -7,7 +7,7 @@ import {
   ChangesPanel,
   MetricsGrid,
   PageIntro,
-} from "@/components/regintelx/panels";
+} from "@/components/regintelx/workspace";
 
 export default function ChangesPage() {
   const { loading, changes, maps } = useRegIntel();
@@ -24,7 +24,7 @@ export default function ChangesPage() {
         description="Review detected changes, affected domains, impact level, and the compliance work generated from each change."
       />
       <MetricsGrid />
-      <div className="mt-8 space-y-8">
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
         <ChangesPanel
           changes={changes}
           loading={loading}

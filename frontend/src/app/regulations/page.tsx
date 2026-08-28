@@ -4,7 +4,7 @@ import { useRegIntel } from "@/components/regintelx/data-provider";
 import {
   PageIntro,
   RegulationsPanel,
-} from "@/components/regintelx/panels";
+} from "@/components/regintelx/workspace";
 
 export default function RegulationsPage() {
   const { loading, regulations } = useRegIntel();

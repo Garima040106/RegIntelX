@@ -10,7 +10,7 @@ import {
   RegulationsPanel,
   SourcesPanel,
   SystemStatusPanel,
-} from "@/components/regintelx/panels";
+} from "@/components/regintelx/workspace";
 
 export default function Home() {
   const { loading, changes, maps, regulations, sources } = useRegIntel();
@@ -31,15 +31,14 @@ export default function Home() {
       <MetricsGrid />
       <AttentionPanel />
 
-      <div className="mt-8 space-y-8">
+      <div className="mt-8 grid gap-8 xl:grid-cols-2">
         <ChangesPanel changes={changes} loading={loading} compact />
         <ActionsPanel maps={maps} loading={loading} compact />
-        <RegulationsPanel
-          regulations={regulations}
-          loading={loading}
-          compact
-        />
-        <SourcesPanel sources={sources} loading={loading} />
+      </div>
+
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <RegulationsPanel regulations={regulations} loading={loading} compact />
+        <SourcesPanel sources={sources} regulations={regulations} loading={loading} />
       </div>
     </>
   );

@@ -28,6 +28,8 @@ type RegIntelContextValue = RegIntelData & {
     highImpactChanges: number;
     openActions: number;
     completedActions: number;
+    urgentActions: number;
+    overdueActions: number;
     averageRisk: number;
   };
 };
@@ -83,6 +85,9 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const metrics = useMemo(() => {
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
     const highImpactChanges = data.changes.filter(
       (change) => change.impact_level?.toLowerCase() === "high"
     ).length;
@@ -92,6 +97,35 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
     const completedActions = data.maps.filter(
       (map) => map.status === "completed"
     ).length;
+    const overdueActions = data.maps.filter((map) => {
+      if (map.status === "completed" || !map.due_date) {
+        return false;
+      }
+
+      const dueDate = new Date(map.due_date).getTime();
+
+      return !Number.isNaN(dueDate) && dueDate < now;
+    }).length;
+    const urgentActions = data.maps.filter((map) => {
+      if (map.status === "completed") {
+        return false;
+      }
+
+      const priority = map.priority?.toLowerCase();
+      const dueDate = map.due_date ? new Date(map.due_date).getTime() : null;
+      const dueSoon =
+        dueDate !== null &&
+        !Number.isNaN(dueDate) &&
+        dueDate >= now &&
+        dueDate - now <= sevenDays;
+
+      return (
+        priority === "high" ||
+        priority === "critical" ||
+        overdueActions > 0 ||
+        dueSoon
+      );
+    }).length;
     const averageRisk = data.maps.length
       ? Math.round(
           data.maps.reduce(
@@ -105,6 +139,8 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
       highImpactChanges,
       openActions,
       completedActions,
+      urgentActions,
+      overdueActions,
       averageRisk,
     };
   }, [data.changes, data.maps]);
