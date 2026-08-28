@@ -9,6 +9,8 @@ import {
   Calendar,
   Hash,
   Activity,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
 const API_URL = "https://regintelx-backend.onrender.com";
