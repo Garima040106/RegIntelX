@@ -341,7 +341,13 @@ export default function Home() {
       </header>
 
       <div className="sticky top-[73px] z-10 border-b bg-slate-50/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-6 py-2">
+        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-6 py-2">
+          <a
+            href="#overview"
+            className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm"
+          >
+            Overview
+          </a>
           <a
             href="#changes"
             className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
@@ -352,7 +358,7 @@ export default function Home() {
             href="#actions"
             className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white hover:text-slate-900"
           >
-            Compliance actions
+            Actions
           </a>
           <a
             href="#regulations"
@@ -370,7 +376,7 @@ export default function Home() {
       </div>
 
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <section className="mb-8">
+        <section id="overview" className="mb-8">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
               <p className="mb-2 text-sm font-medium text-slate-500">
