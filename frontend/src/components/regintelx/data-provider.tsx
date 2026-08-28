@@ -85,7 +85,7 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const metrics = useMemo(() => {
-    const now = Date.now();
+    const now = new Date().getTime();
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
     const highImpactChanges = data.changes.filter(

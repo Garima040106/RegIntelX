@@ -188,6 +188,15 @@ export default function RegulationPage({ params }: Props) {
                   View detected changes
                   <ArrowUpRight size={15} />
                 </Link>
+                {relatedActions.length > 0 ? (
+                  <Link
+                    href="/actions"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                  >
+                    View related actions
+                    <ArrowUpRight size={15} />
+                  </Link>
+                ) : null}
               </div>
             </div>
 
@@ -385,6 +394,24 @@ export default function RegulationPage({ params }: Props) {
                 <ArrowUpRight size={14} />
               </Link>
             </section>
+
+            {relatedChanges.length > 0 ? (
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Related change
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  This regulation is connected to {relatedChanges.length} detected change{relatedChanges.length === 1 ? "" : "s"} in the current data.
+                </p>
+                <Link
+                  href="/changes"
+                  className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-slate-700 transition hover:text-slate-950 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                >
+                  Review changes
+                  <ArrowUpRight size={14} />
+                </Link>
+              </section>
+            ) : null}
 
             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">

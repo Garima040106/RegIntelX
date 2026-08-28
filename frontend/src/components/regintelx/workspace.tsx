@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Activity,
   AlertTriangle,
@@ -12,7 +12,6 @@ import {
   Database,
   ExternalLink,
   FileText,
-  Hash,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -115,6 +114,51 @@ function stateTone(value: string) {
   }
 
   return "border-slate-200 bg-slate-100 text-slate-600";
+}
+
+function WorkflowTrail({
+  regulationLabel,
+  changeLabel,
+  actionLabel,
+  evidenceLabel,
+  regulationHref,
+  changeHref,
+}: {
+  regulationLabel: string;
+  changeLabel: string;
+  actionLabel: string;
+  evidenceLabel: string;
+  regulationHref?: string;
+  changeHref?: string;
+}) {
+  const stepClass =
+    "inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600";
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {regulationHref ? (
+          <Link href={regulationHref} className={stepClass}>
+            {regulationLabel}
+          </Link>
+        ) : (
+          <span className={stepClass}>{regulationLabel}</span>
+        )}
+        <span className="text-slate-300">→</span>
+        {changeHref ? (
+          <Link href={changeHref} className={stepClass}>
+            {changeLabel}
+          </Link>
+        ) : (
+          <span className={stepClass}>{changeLabel}</span>
+        )}
+        <span className="text-slate-300">→</span>
+        <span className={stepClass}>{actionLabel}</span>
+        <span className="text-slate-300">→</span>
+        <span className={stepClass}>{evidenceLabel}</span>
+      </div>
+    </div>
+  );
 }
 
 function SectionCard({
@@ -400,16 +444,32 @@ export function ChangesPanel({
   onSelectedChange?: (id: string | null) => void;
   compact?: boolean;
 }) {
-  const { maps } = useRegIntel();
+  const { maps, regulations } = useRegIntel();
 
   const visibleChanges = useMemo(() => {
     const sorted = [...changes].sort((left, right) => changeRank(left) - changeRank(right));
     return compact ? sorted.slice(0, 4) : sorted;
   }, [changes, compact]);
 
+  const regulationById = useMemo(
+    () => new Map(regulations.map((regulation) => [regulation.id, regulation])),
+    [regulations]
+  );
+
   const countsByChange = useMemo(() => {
     return maps.reduce<Record<string, number>>((accumulator, map) => {
       accumulator[map.change_id] = (accumulator[map.change_id] || 0) + 1;
+      return accumulator;
+    }, {});
+  }, [maps]);
+
+  const actionsByChange = useMemo(() => {
+    return maps.reduce<Record<string, ComplianceMap[]>>((accumulator, map) => {
+      if (!accumulator[map.change_id]) {
+        accumulator[map.change_id] = [];
+      }
+
+      accumulator[map.change_id].push(map);
       return accumulator;
     }, {});
   }, [maps]);
@@ -457,6 +517,8 @@ export function ChangesPanel({
             const selected = selectedChange === change.id;
             const impactTone = stateTone(change.impact_level);
             const changeActionCount = countsByChange[change.id] || 0;
+            const relatedActions = actionsByChange[change.id] || [];
+            const relatedRegulation = regulationById.get(change.regulation_id);
 
             return (
               <motion.article
@@ -480,6 +542,15 @@ export function ChangesPanel({
                         {confidenceLabel(change.ai_confidence)}
                       </span>
                     </div>
+
+                    <WorkflowTrail
+                      regulationLabel="Regulation"
+                      changeLabel="Change"
+                      actionLabel={`${changeActionCount} action${changeActionCount === 1 ? "" : "s"}`}
+                      evidenceLabel="Evidence"
+                      regulationHref={relatedRegulation ? `/regulations/${relatedRegulation.id}` : undefined}
+                      changeHref={selectedChange ? undefined : undefined}
+                    />
 
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -542,12 +613,87 @@ export function ChangesPanel({
                             : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                         }`}
                       >
-                        {selected ? "Hide affected actions" : "Inspect affected actions"}
+                        {selected ? "Hide compliance impact" : "View compliance impact"}
                         <ArrowUpRight size={14} />
                       </button>
                     ) : null}
                   </div>
                 </div>
+
+                <AnimatePresence initial={false}>
+                  {selected && !compact ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                              Compliance impact
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-slate-600">
+                              Review the linked actions below. Each action in the workspace points back to its originating regulation and the evidence it needs.
+                            </p>
+
+                            <div className="mt-4 space-y-3">
+                              {relatedActions.length === 0 ? (
+                                <p className="text-sm text-slate-500">
+                                  No compliance actions are currently linked to this change.
+                                </p>
+                              ) : (
+                                relatedActions.slice(0, 3).map((action) => (
+                                  <div
+                                    key={action.id}
+                                    className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                                  >
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <p className="font-medium text-slate-950">{action.title}</p>
+                                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                                          {action.description}
+                                        </p>
+                                      </div>
+                                      <Link
+                                        href="/actions"
+                                        className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                                      >
+                                        Open action workspace
+                                        <ArrowUpRight size={13} />
+                                      </Link>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 flex-col gap-2 lg:w-56">
+                            {relatedRegulation ? (
+                              <Link
+                                href={`/regulations/${relatedRegulation.id}`}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                              >
+                                Open regulation
+                                <ArrowUpRight size={14} />
+                              </Link>
+                            ) : null}
+                            <Link
+                              href="/actions"
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                            >
+                              Open compliance actions
+                              <ArrowUpRight size={14} />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
               </motion.article>
             );
           })}
@@ -683,6 +829,15 @@ export function ActionsPanel({
                       ) : null}
                     </div>
 
+                    <WorkflowTrail
+                      regulationLabel="Regulation"
+                      changeLabel="Change"
+                      actionLabel="Compliance action"
+                      evidenceLabel="Evidence"
+                      regulationHref={regulation ? `/regulations/${regulation.id}` : undefined}
+                      changeHref="/changes"
+                    />
+
                     <p className="max-w-4xl text-sm leading-7 text-slate-700">
                       {map.description}
                     </p>
@@ -699,7 +854,7 @@ export function ActionsPanel({
 
                       <div className="rounded-2xl border border-slate-200 bg-white p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          Related regulation / change
+                          Originating change / regulation
                         </p>
                         <div className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
                           {regulation ? (
@@ -713,7 +868,16 @@ export function ActionsPanel({
                             <p className="text-slate-500">Regulation not linked in the current data.</p>
                           )}
                           {change ? (
-                            <p className="text-slate-500">Triggered by: {change.change_summary}</p>
+                            <div>
+                              <p className="text-slate-500">Triggered by: {change.change_summary}</p>
+                              <Link
+                                href="/changes"
+                                className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-slate-700 transition hover:text-slate-950 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                              >
+                                View originating change
+                                <ArrowUpRight size={13} />
+                              </Link>
+                            </div>
                           ) : (
                             <p className="text-slate-500">Change reference: {map.change_id}</p>
                           )}
@@ -795,6 +959,13 @@ export function ActionsPanel({
                         <ArrowUpRight size={14} />
                       </Link>
                     ) : null}
+                    <Link
+                      href="/changes"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                    >
+                      View impact chain
+                      <ArrowUpRight size={14} />
+                    </Link>
                   </div>
                 </div>
               </motion.article>
@@ -823,8 +994,6 @@ export function RegulationsPanel({
     const trimmed = query.trim();
 
     if (!trimmed) {
-      setSemanticResults([]);
-      setSemanticLoading(false);
       return;
     }
 
