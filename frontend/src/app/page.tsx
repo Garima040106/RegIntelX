@@ -315,18 +315,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={loadData}
-              className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm hover:bg-slate-50"
-            >
-              <RefreshCw size={15} />
-              Refresh
-            </button>
-
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-lg border bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:flex">
               <span
-                className={`h-2.5 w-2.5 rounded-full ${
+                className={`h-2 w-2 rounded-full ${
                   backendStatus === "Connected"
                     ? "bg-green-500"
                     : backendStatus === "Checking..."
@@ -334,14 +326,27 @@ export default function Home() {
                       : "bg-red-500"
                 }`}
               />
-              {backendStatus}
+              {backendStatus === "Connected"
+                ? "System operational"
+                : backendStatus}
             </div>
+
+            <button
+              onClick={loadData}
+              className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              <RefreshCw size={15} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
           </div>
         </div>
       </header>
 
       <div className="sticky top-[73px] z-10 border-b bg-slate-50/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-6 py-2">
+          <span className="mr-2 hidden shrink-0 text-xs font-medium uppercase tracking-wide text-slate-400 md:inline">
+            Workspace
+          </span>
           <a
             href="#overview"
             className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-sm font-medium text-slate-900 shadow-sm"
@@ -651,142 +656,191 @@ export default function Home() {
         </section>
 
         <section id="actions" className="mt-8 rounded-2xl border bg-white shadow-sm">
-          <div className="border-b px-6 py-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <ClipboardCheck size={18} className="text-slate-500" />
-                  <h3 className="font-semibold">
-                    Compliance actions
-                  </h3>
+  <div className="border-b px-6 py-5">
+    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <div className="flex items-center gap-2">
+          <ClipboardCheck size={18} className="text-slate-500" />
+          <h3 className="font-semibold">
+            Compliance actions
+          </h3>
+        </div>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Turn detected regulatory changes into accountable, trackable work.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full border bg-slate-50 px-3 py-1 text-xs text-slate-600">
+          {openActions} open
+        </span>
+
+        <span className="rounded-full border bg-slate-50 px-3 py-1 text-xs text-slate-600">
+          {completedActions} completed
+        </span>
+
+        {selectedChange && (
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
+            Filtered by change
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <div className="divide-y">
+    {visibleMaps.length === 0 ? (
+      <div className="px-6 py-12 text-center">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border bg-slate-50">
+          <ClipboardCheck size={19} className="text-slate-400" />
+        </div>
+
+        <p className="mt-4 text-sm font-medium text-slate-700">
+          No compliance actions to show
+        </p>
+
+        <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+          Select a regulatory change above to see the actions generated from its impact assessment.
+        </p>
+      </div>
+    ) : (
+      visibleMaps.map((map) => {
+        const risk = Math.round(Number(map.risk_score || 0));
+        const isCompleted = map.status === "completed";
+        const isInProgress = map.status === "in_progress";
+
+        return (
+          <div
+            key={map.id}
+            className={`px-6 py-6 transition ${
+              isCompleted
+                ? "bg-slate-50/50"
+                : "hover:bg-slate-50/70"
+            }`}
+          >
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4
+                    className={`font-medium ${
+                      isCompleted
+                        ? "text-slate-500 line-through"
+                        : "text-slate-900"
+                    }`}
+                  >
+                    {map.title}
+                  </h4>
+
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                      map.priority
+                    )}`}
+                  >
+                    {formatStatus(map.priority)} priority
+                  </span>
+
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
+                      map.status
+                    )}`}
+                  >
+                    {formatStatus(map.status)}
+                  </span>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  Review and track the actions created from regulatory changes.
+
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                  {map.description}
                 </p>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex items-center gap-2">
+                    <FileText size={15} className="text-slate-400" />
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Required evidence
+                    </p>
+                  </div>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {map.required_evidence}
+                  </p>
+                </div>
               </div>
 
-              {selectedChange && (
-                <span className="rounded-full border bg-slate-50 px-3 py-1 text-xs text-slate-600">
-                  Showing actions for selected change
-                </span>
-              )}
-            </div>
-          </div>
+              <div className="flex shrink-0 flex-col gap-3 xl:w-48">
+                <div className="rounded-xl border bg-white p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-slate-500">
+                      Risk score
+                    </p>
 
-          <div className="divide-y">
-            {visibleMaps.length === 0 ? (
-              <div className="px-6 py-10 text-sm text-slate-500">
-                Select a regulatory change above to view its compliance actions.
-              </div>
-            ) : (
-              visibleMaps.map((map) => (
-                <div
-                  key={map.id}
-                  className="px-6 py-5"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-medium">
-                          {map.title}
-                        </h4>
+                    <Activity size={15} className="text-slate-400" />
+                  </div>
 
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
-                            map.priority
-                          )}`}
-                        >
-                          {formatStatus(map.priority)}
-                        </span>
+                  <div className="mt-2 flex items-end justify-between">
+                    <p className="text-2xl font-semibold">
+                      {risk}
+                    </p>
 
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${badgeClass(
-                            map.status
-                          )}`}
-                        >
-                          {formatStatus(map.status)}
-                        </span>
-                      </div>
+                    <span className="pb-1 text-xs text-slate-400">
+                      / 100
+                    </span>
+                  </div>
 
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                        {map.description}
-                      </p>
-
-                      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Required evidence
-                        </p>
-                        <p className="mt-1 text-sm leading-5 text-slate-700">
-                          {map.required_evidence}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 flex-col gap-3 lg:min-w-40 lg:items-end">
-                      <div className="rounded-xl border bg-white px-4 py-3 text-right">
-                        <p className="text-xs text-slate-500">
-                          Risk score
-                        </p>
-                        <p className="mt-1 text-2xl font-semibold">
-                          {Math.round(Number(map.risk_score || 0))}
-                        </p>
-                        <p className="mt-1 text-xs font-medium text-slate-500">
-                          {Number(map.risk_score || 0) >= 75
-                            ? "High risk"
-                            : Number(map.risk_score || 0) >= 40
-                              ? "Medium risk"
-                              : "Low risk"}
-                        </p>
-                      </div>
-
-                      {map.due_date && (
-                        <div className="text-right">
-                          <p className="text-xs text-slate-400">
-                            Deadline
-                          </p>
-                          <p className="mt-1 text-xs font-medium text-slate-600">
-                            {new Date(map.due_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
-
-                      {map.status !== "completed" ? (
-                        <>
-                          <p className="text-xs text-slate-400">
-                            {map.status === "pending"
-                              ? "Ready to begin"
-                              : "Action in progress"}
-                          </p>
-
-                          <button
-                            onClick={() =>
-                              updateMapStatus(
-                                map.id,
-                                map.status === "pending"
-                                  ? "in_progress"
-                                  : "completed"
-                              )
-                            }
-                            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-slate-800 lg:w-auto"
-                          >
-                            {map.status === "pending"
-                              ? "Start action"
-                              : "Mark as completed"}
-                          </button>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2 rounded-lg border border-green-100 bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
-                          <CheckCircle2 size={14} />
-                          Completed
-                        </div>
-                      )}
-                    </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className="h-full rounded-full bg-slate-700"
+                      style={{
+                        width: `${Math.min(Math.max(risk, 0), 100)}%`,
+                      }}
+                    />
                   </div>
                 </div>
-              ))
-            )}
+
+                {map.due_date && (
+                  <div className="rounded-xl border bg-white p-4">
+                    <p className="text-xs text-slate-400">
+                      Deadline
+                    </p>
+
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                      {new Date(map.due_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+
+                {!isCompleted && (
+                  <button
+                    onClick={() =>
+                      updateMapStatus(
+                        map.id,
+                        map.status === "pending"
+                          ? "in_progress"
+                          : "completed"
+                      )
+                    }
+                    className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-medium text-white transition hover:bg-slate-800"
+                  >
+                    {isInProgress
+                      ? "Mark complete"
+                      : "Start action"}
+                  </button>
+                )}
+
+                {isCompleted && (
+                  <div className="flex items-center justify-center gap-2 rounded-lg border border-green-100 bg-green-50 px-4 py-2.5 text-xs font-medium text-green-700">
+                    <CheckCircle2 size={14} />
+                    Completed
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </section>
+        );
+      })
+    )}
+  </div>
+</section>
 
         <section id="regulations" className="mt-8 rounded-2xl border bg-white shadow-sm">
           <div className="border-b px-6 py-5">
