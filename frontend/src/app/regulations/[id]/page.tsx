@@ -91,77 +91,61 @@ export default function RegulationPage({ params }: Props) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 text-slate-900">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="rounded-2xl border bg-white p-8 shadow-sm">
-            <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
-            <div className="mt-5 h-9 w-3/4 animate-pulse rounded bg-slate-100" />
-            <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-slate-100" />
-          </div>
-        </div>
-      </main>
+      <div className="rounded-2xl border bg-white p-8 shadow-sm">
+        <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
+        <div className="mt-5 h-9 w-3/4 animate-pulse rounded bg-slate-100" />
+        <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-slate-100" />
+      </div>
     );
   }
 
   if (error || !regulation) {
     return (
-      <main className="min-h-screen bg-slate-50 text-slate-900">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <Link
-            href="/"
-            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={16} />
-            Back to command center
-          </Link>
+      <>
+        <Link
+          href="/regulations"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-200"
+        >
+          <ArrowLeft size={16} />
+          Back to regulations
+        </Link>
 
-          <div className="rounded-2xl border bg-white p-8 shadow-sm">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-              <FileText size={19} className="text-slate-500" />
-            </div>
-
-            <h1 className="mt-5 text-xl font-semibold">
-              Regulation unavailable
-            </h1>
-
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-              {error ||
-                "The requested regulation could not be found."}
-            </p>
-
-            <Link
-              href="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Return to dashboard
-              <ArrowUpRight size={15} />
-            </Link>
+        <div className="rounded-2xl border bg-white p-8 shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+            <FileText size={19} className="text-slate-500" />
           </div>
+
+          <h1 className="mt-5 text-xl font-semibold">
+            Regulation unavailable
+          </h1>
+
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+            {error || "The requested regulation could not be found."}
+          </p>
+
+          <Link
+            href="/regulations"
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+          >
+            Return to regulations
+            <ArrowUpRight size={15} />
+          </Link>
         </div>
-      </main>
+      </>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-20 border-b bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
-          >
-            <ArrowLeft size={16} />
-            Back to command center
-          </Link>
+    <>
+      <Link
+        href="/regulations"
+        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-200"
+      >
+        <ArrowLeft size={16} />
+        Back to regulations
+      </Link>
 
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <ShieldCheck size={15} />
-            RegIntelX
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="max-w-6xl">
         <section className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
           <div className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center gap-2">
@@ -200,7 +184,7 @@ export default function RegulationPage({ params }: Props) {
               </a>
 
               <Link
-                href="/#changes"
+                href="/changes"
                 className="inline-flex items-center justify-center gap-2 rounded-lg border bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 View detected changes
@@ -389,7 +373,7 @@ export default function RegulationPage({ params }: Props) {
                     </p>
 
                     <Link
-                      href="/#changes"
+                      href="/changes"
                       className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                     >
                       Review changes
@@ -445,7 +429,7 @@ export default function RegulationPage({ params }: Props) {
               </p>
 
               <Link
-                href="/#actions"
+                href="/actions"
                 className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white hover:text-slate-200"
               >
                 Open compliance actions
@@ -465,6 +449,6 @@ export default function RegulationPage({ params }: Props) {
           </aside>
         </div>
       </div>
-    </main>
+    </>
   );
 }
