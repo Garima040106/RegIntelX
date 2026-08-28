@@ -560,19 +560,37 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() =>
-                          setSelectedChange(
-                            isSelected ? null : change.id
-                          )
-                        }
-                        className="flex shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium hover:bg-white"
-                      >
-                        {isSelected
-                          ? "Hide actions"
-                          : "View affected actions"}
-                        <ArrowUpRight size={14} />
-                      </button>
+                      <div className="flex shrink-0 flex-col items-stretch gap-2 lg:min-w-44 lg:items-end">
+                        <div className="rounded-xl border bg-white px-4 py-3 lg:text-right">
+                          <p className="text-xs text-slate-400">
+                            Impact
+                          </p>
+                          <p className="mt-1 text-sm font-semibold">
+                            {change.impact_level} impact
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {change.affected_domains?.length || 0} affected domains
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            setSelectedChange(
+                              isSelected ? null : change.id
+                            )
+                          }
+                          className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition ${
+                            isSelected
+                              ? "bg-slate-900 text-white hover:bg-slate-800"
+                              : "bg-white hover:bg-slate-50"
+                          }`}
+                        >
+                          {isSelected
+                            ? "Hide actions"
+                            : "View affected actions"}
+                          <ArrowUpRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
