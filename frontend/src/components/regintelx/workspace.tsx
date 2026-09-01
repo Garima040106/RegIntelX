@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   Activity,
   AlertTriangle,
   ArrowUpRight,
+  ArrowRight,
   CheckCircle2,
   ClipboardCheck,
   Database,
@@ -66,6 +67,184 @@ function formatDueDate(value: string | null) {
   });
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function useAnimatedNumber(value: number) {
+  const prefersReducedMotion = useReducedMotion();
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const duration = 550;
+    const start = performance.now();
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const progress = clamp((now - start) / duration, 0, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      setDisplayValue(Math.round(value * eased));
+
+      if (progress < 1) {
+        frame = window.requestAnimationFrame(tick);
+      }
+    };
+
+    frame = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [prefersReducedMotion, value]);
+
+  return prefersReducedMotion ? value : displayValue;
+}
+
+function AnimatedNumber({
+  value,
+  tone = "slate",
+}: {
+  value: number;
+  tone?: "slate" | "blue" | "emerald" | "amber" | "red";
+}) {
+  const displayValue = useAnimatedNumber(value);
+
+  const toneClass = {
+    slate: "text-slate-950",
+    blue: "text-blue-700",
+    emerald: "text-emerald-700",
+    amber: "text-amber-700",
+    red: "text-red-700",
+  }[tone];
+
+  return (
+    <span className={`tabular-nums tracking-tight ${toneClass}`}>
+      {displayValue.toLocaleString()}
+    </span>
+  );
+}
+
+function RiskMeter({ value }: { value: number }) {
+  const risk = clamp(Math.round(value), 0, 100);
+  const tone = risk >= 75 ? "red" : risk >= 50 ? "amber" : "emerald";
+  const trackClass = {
+    red: "bg-red-100",
+    amber: "bg-amber-100",
+    emerald: "bg-emerald-100",
+  }[tone];
+  const barClass = {
+    red: "bg-red-500",
+    amber: "bg-amber-500",
+    emerald: "bg-emerald-500",
+  }[tone];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Risk score
+          </p>
+          <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+            <AnimatedNumber value={risk} tone={tone} /> / 100
+          </p>
+        </div>
+        <Activity size={15} className={risk >= 75 ? "text-red-500" : risk >= 50 ? "text-amber-500" : "text-slate-400"} />
+      </div>
+      <div className={`mt-3 h-1.5 overflow-hidden rounded-full ${trackClass}`}>
+        <div className={`h-full rounded-full ${barClass}`} style={{ width: `${risk}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function WorkflowTrail({
+  actionCount,
+  impactLevel,
+  changeType,
+  regulationLabel,
+}: {
+  actionCount: number | null;
+  impactLevel: string;
+  changeType: string;
+  regulationLabel: string;
+}) {
+  type WorkflowTone = "slate" | "blue" | "emerald" | "amber" | "red";
+
+  const actionsText = actionCount === null ? "Tracked" : `${actionCount} linked`;
+  const evidenceText = actionCount === null ? "Required" : actionCount > 0 ? "Tracked" : "Pending";
+
+  const stages: Array<{
+    label: string;
+    value: string;
+    icon: ReactNode;
+    tone: WorkflowTone;
+  }> = [
+    {
+      label: "Regulation",
+      value: regulationLabel,
+      icon: <FileText size={13} />,
+      tone: "slate" as const,
+    },
+    {
+      label: "Change",
+      value: formatStatus(changeType),
+      icon: <AlertTriangle size={13} />,
+      tone: "amber" as const,
+    },
+    {
+      label: "Impact",
+      value: formatStatus(impactLevel),
+      icon: <Activity size={13} />,
+      tone: impactLevel.toLowerCase() === "high" || impactLevel.toLowerCase() === "critical" ? "red" : "blue",
+    },
+    {
+      label: "Actions",
+      value: actionsText,
+      icon: <ClipboardCheck size={13} />,
+      tone: actionCount === null ? "slate" : actionCount > 0 ? "emerald" : "slate",
+    },
+    {
+      label: "Evidence",
+      value: evidenceText,
+      icon: <Database size={13} />,
+      tone: actionCount === null ? "amber" : actionCount > 0 ? "emerald" : "amber",
+    },
+  ];
+
+  const toneStyles = {
+    slate: "border-slate-200 bg-white text-slate-600",
+    blue: "border-blue-200 bg-blue-50 text-blue-700",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    amber: "border-amber-200 bg-amber-50 text-amber-700",
+    red: "border-red-200 bg-red-50 text-red-700",
+  } satisfies Record<WorkflowTone, string>;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        {stages.map((stage, index) => (
+          <div key={stage.label} className="flex min-w-0 items-center gap-2">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium ${toneStyles[stage.tone]}`}>
+              {stage.icon}
+              <span>{stage.label}</span>
+            </div>
+            <span className="max-w-[10rem] truncate text-[11px] text-slate-500">
+              {stage.value}
+            </span>
+            {index < stages.length - 1 ? (
+              <ArrowRight size={12} className="shrink-0 text-slate-300" />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function daysUntil(value: string | null) {
   if (!value) return null;
 
@@ -114,51 +293,6 @@ function stateTone(value: string) {
   }
 
   return "border-slate-200 bg-slate-100 text-slate-600";
-}
-
-function WorkflowTrail({
-  regulationLabel,
-  changeLabel,
-  actionLabel,
-  evidenceLabel,
-  regulationHref,
-  changeHref,
-}: {
-  regulationLabel: string;
-  changeLabel: string;
-  actionLabel: string;
-  evidenceLabel: string;
-  regulationHref?: string;
-  changeHref?: string;
-}) {
-  const stepClass =
-    "inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600";
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        {regulationHref ? (
-          <Link href={regulationHref} className={stepClass}>
-            {regulationLabel}
-          </Link>
-        ) : (
-          <span className={stepClass}>{regulationLabel}</span>
-        )}
-        <span className="text-slate-300">→</span>
-        {changeHref ? (
-          <Link href={changeHref} className={stepClass}>
-            {changeLabel}
-          </Link>
-        ) : (
-          <span className={stepClass}>{changeLabel}</span>
-        )}
-        <span className="text-slate-300">→</span>
-        <span className={stepClass}>{actionLabel}</span>
-        <span className="text-slate-300">→</span>
-        <span className={stepClass}>{evidenceLabel}</span>
-      </div>
-    </div>
-  );
 }
 
 function SectionCard({
@@ -232,12 +366,14 @@ function KPI({
   note,
   icon,
   tone = "slate",
+  delay = 0,
 }: {
   label: string;
   value: number | string;
   note: string;
   icon: ReactNode;
   tone?: "slate" | "blue" | "emerald" | "amber" | "red";
+  delay?: number;
 }) {
   const toneMap = {
     slate: "border-slate-200 bg-white text-slate-900",
@@ -247,10 +383,19 @@ function KPI({
     red: "border-red-200 bg-red-50/70 text-slate-900",
   }[tone];
 
+  const animatedValue = typeof value === "number" ? (
+    <AnimatedNumber value={value} tone={tone} />
+  ) : (
+    value
+  );
+
   return (
     <motion.div
-      whileHover={{ y: -1 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      whileTap={{ y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut", delay }}
       className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${toneMap}`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -259,7 +404,7 @@ function KPI({
             {label}
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-            {value}
+            {animatedValue}
           </p>
         </div>
         <span className="rounded-lg border border-slate-200 bg-white/70 p-2 text-slate-500">
@@ -298,35 +443,50 @@ export function PageIntro({
 export function MetricsGrid() {
   const { regulations, metrics } = useRegIntel();
 
+  const cards = [
+    {
+      label: "Regulations",
+      value: regulations.length,
+      note: "Monitored source documents",
+      icon: <FileText size={18} />,
+      tone: "slate" as const,
+    },
+    {
+      label: "High-impact changes",
+      value: metrics.highImpactChanges,
+      note: "Changes that need a close review",
+      icon: <AlertTriangle size={18} />,
+      tone: metrics.highImpactChanges > 0 ? ("red" as const) : ("slate" as const),
+    },
+    {
+      label: "Open actions",
+      value: metrics.openActions,
+      note: `${metrics.urgentActions} urgent, ${metrics.completedActions} completed`,
+      icon: <ClipboardCheck size={18} />,
+      tone: metrics.openActions > 0 ? ("amber" as const) : ("emerald" as const),
+    },
+    {
+      label: "Average risk",
+      value: metrics.averageRisk,
+      note: `Across ${metrics.openActions} active compliance actions`,
+      icon: <Activity size={18} />,
+      tone: metrics.averageRisk >= 75 ? ("red" as const) : metrics.averageRisk >= 50 ? ("amber" as const) : ("blue" as const),
+    },
+  ];
+
   return (
     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <KPI
-        label="Regulations"
-        value={regulations.length}
-        note="Monitored source documents"
-        icon={<FileText size={18} />}
-      />
-      <KPI
-        label="High-impact changes"
-        value={metrics.highImpactChanges}
-        note="Changes that need a close review"
-        icon={<AlertTriangle size={18} />}
-        tone={metrics.highImpactChanges > 0 ? "red" : "slate"}
-      />
-      <KPI
-        label="Open actions"
-        value={metrics.openActions}
-        note={`${metrics.urgentActions} urgent, ${metrics.completedActions} completed`}
-        icon={<ClipboardCheck size={18} />}
-        tone={metrics.openActions > 0 ? "amber" : "emerald"}
-      />
-      <KPI
-        label="Average risk"
-        value={metrics.averageRisk}
-        note={`Across ${metrics.openActions} active compliance actions`}
-        icon={<Activity size={18} />}
-        tone={metrics.averageRisk >= 75 ? "red" : metrics.averageRisk >= 50 ? "amber" : "blue"}
-      />
+      {cards.map((card, index) => (
+        <KPI
+          key={card.label}
+          label={card.label}
+          value={card.value}
+          note={card.note}
+          icon={card.icon}
+          tone={card.tone}
+          delay={index * 0.06}
+        />
+      ))}
     </section>
   );
 }
@@ -519,6 +679,8 @@ export function ChangesPanel({
             const changeActionCount = countsByChange[change.id] || 0;
             const relatedActions = actionsByChange[change.id] || [];
             const relatedRegulation = regulationById.get(change.regulation_id);
+            const domains = change.affected_domains || [];
+            const confidenceText = confidenceLabel(change.ai_confidence);
 
             return (
               <motion.article
@@ -526,8 +688,8 @@ export function ChangesPanel({
                 initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className={`px-5 py-5 sm:px-6 ${selected ? "bg-slate-50" : ""}`}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className={`px-5 py-5 sm:px-6 ${selected ? "bg-slate-50/80" : ""}`}
               >
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1 space-y-4">
@@ -539,18 +701,18 @@ export function ChangesPanel({
                         {normalizeLabel(change.change_type)}
                       </span>
                       <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                        {confidenceLabel(change.ai_confidence)}
+                        {confidenceText}
                       </span>
                     </div>
 
-                    <WorkflowTrail
-                      regulationLabel="Regulation"
-                      changeLabel="Change"
-                      actionLabel={`${changeActionCount} action${changeActionCount === 1 ? "" : "s"}`}
-                      evidenceLabel="Evidence"
-                      regulationHref={relatedRegulation ? `/regulations/${relatedRegulation.id}` : undefined}
-                      changeHref={selectedChange ? undefined : undefined}
-                    />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Regulation
+                      </p>
+                      <h4 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
+                        {relatedRegulation?.title ?? "Unlinked regulation"}
+                      </h4>
+                    </div>
 
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -561,13 +723,13 @@ export function ChangesPanel({
                       </p>
                     </div>
 
-                    {change.affected_domains?.length ? (
+                    {domains.length ? (
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                           Affected domains
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {change.affected_domains.map((domain) => (
+                          {domains.map((domain) => (
                             <span
                               key={domain}
                               className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
@@ -579,16 +741,33 @@ export function ChangesPanel({
                       </div>
                     ) : null}
 
+                    <WorkflowTrail
+                      regulationLabel={relatedRegulation?.circular_number ? `Circular ${relatedRegulation.circular_number}` : "Regulation"}
+                      changeType={change.change_type}
+                      impactLevel={change.impact_level}
+                      actionCount={changeActionCount}
+                    />
+
+                    <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Impact summary
+                      </p>
+                      <p className="mt-2 text-sm leading-7 text-slate-700">
+                        {changeActionCount > 0
+                          ? `${changeActionCount} linked compliance action${changeActionCount === 1 ? "" : "s"} already map to this change.`
+                          : "No linked compliance actions are currently mapped to this change."}
+                      </p>
+                    </div>
+
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
                       <span>Detected {formatDate(change.created_at)}</span>
                       <span>
-                        {changeActionCount} related compliance action
-                        {changeActionCount === 1 ? "" : "s"}
+                        {changeActionCount} related compliance action{changeActionCount === 1 ? "" : "s"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-col gap-3 xl:w-56">
+                  <div className="flex shrink-0 flex-col gap-3 xl:w-60">
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                         Impact
@@ -598,7 +777,7 @@ export function ChangesPanel({
                       </p>
                       <p className="mt-1 text-sm leading-6 text-slate-500">
                         {changeActionCount > 0
-                          ? `${changeActionCount} action${changeActionCount === 1 ? "" : "s"} already linked`
+                          ? `${changeActionCount} action${changeActionCount === 1 ? "" : "s"} linked`
                           : "No linked actions yet"}
                       </p>
                     </div>
@@ -607,10 +786,10 @@ export function ChangesPanel({
                       <button
                         type="button"
                         onClick={() => onSelectedChange?.(selected ? null : change.id)}
-                        className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-4 focus:ring-slate-200 ${
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition duration-200 focus:outline-none focus:ring-4 focus:ring-slate-200 ${
                           selected
-                            ? "border-slate-950 bg-slate-950 text-white hover:bg-slate-800"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            ? "border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                         }`}
                       >
                         {selected ? "Hide compliance impact" : "View compliance impact"}
@@ -626,56 +805,92 @@ export function ChangesPanel({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      transition={{ duration: 0.24, ease: "easeOut" }}
                       className="overflow-hidden"
                     >
                       <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                              Compliance impact
-                            </p>
-                            <p className="mt-1 text-sm leading-6 text-slate-600">
-                              Review the linked actions below. Each action in the workspace points back to its originating regulation and the evidence it needs.
-                            </p>
+                        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+                          <div className="min-w-0 space-y-4">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                Why this matters
+                              </p>
+                              <p className="mt-2 text-sm leading-7 text-slate-600">
+                                The detected change is already linked to the actions below. Use them as the operational record for controls, evidence, and tracking.
+                              </p>
+                            </div>
 
-                            <div className="mt-4 space-y-3">
-                              {relatedActions.length === 0 ? (
-                                <p className="text-sm text-slate-500">
-                                  No compliance actions are currently linked to this change.
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                  Impact
                                 </p>
-                              ) : (
-                                relatedActions.slice(0, 3).map((action) => (
-                                  <div
-                                    key={action.id}
-                                    className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
-                                  >
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                      <div className="min-w-0">
-                                        <p className="font-medium text-slate-950">{action.title}</p>
-                                        <p className="mt-1 text-sm leading-6 text-slate-600">
-                                          {action.description}
-                                        </p>
+                                <p className="mt-2 text-sm font-semibold text-slate-950">
+                                  {change.impact_level}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                  Linked actions
+                                </p>
+                                <p className="mt-2 text-sm font-semibold text-slate-950">
+                                  {changeActionCount}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                  AI confidence
+                                </p>
+                                <p className="mt-2 text-sm font-semibold text-slate-950">
+                                  {confidenceText}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                                Linked compliance actions
+                              </p>
+                              <div className="mt-3 space-y-3">
+                                {relatedActions.length === 0 ? (
+                                  <p className="text-sm text-slate-500">
+                                    No compliance actions are currently linked to this change.
+                                  </p>
+                                ) : (
+                                  relatedActions.slice(0, 3).map((action) => (
+                                    <div
+                                      key={action.id}
+                                      className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-slate-300 hover:bg-slate-50"
+                                    >
+                                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="min-w-0">
+                                          <p className="font-medium text-slate-950">{action.title}</p>
+                                          <p className="mt-1 text-sm leading-6 text-slate-600">
+                                            {action.description}
+                                          </p>
+                                        </div>
+                                        <Link
+                                          href="/actions"
+                                          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                                        >
+                                          Open action workspace
+                                          <ArrowUpRight size={13} />
+                                        </Link>
                                       </div>
-                                      <Link
-                                        href="/actions"
-                                        className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
-                                      >
-                                        Open action workspace
-                                        <ArrowUpRight size={13} />
-                                      </Link>
                                     </div>
-                                  </div>
-                                ))
-                              )}
+                                  ))
+                                )}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex shrink-0 flex-col gap-2 lg:w-56">
+                          <div className="space-y-3">
                             {relatedRegulation ? (
                               <Link
                                 href={`/regulations/${relatedRegulation.id}`}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
                               >
                                 Open regulation
                                 <ArrowUpRight size={14} />
@@ -683,7 +898,7 @@ export function ChangesPanel({
                             ) : null}
                             <Link
                               href="/actions"
-                              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
                             >
                               Open compliance actions
                               <ArrowUpRight size={14} />
@@ -715,6 +930,7 @@ export function ActionsPanel({
   compact?: boolean;
 }) {
   const { changes, regulations, metrics, updateMapStatus } = useRegIntel();
+  const [updatingMapId, setUpdatingMapId] = useState<string | null>(null);
 
   const visibleMaps = useMemo(() => {
     const filtered = selectedChange ? maps.filter((map) => map.change_id === selectedChange) : maps;
@@ -796,6 +1012,7 @@ export function ActionsPanel({
             const isOverdue = remaining !== null && remaining < 0 && !completed;
             const change = changeById.get(map.change_id);
             const regulation = regulationById.get(map.regulation_id);
+            const isUpdating = updatingMapId === map.id;
 
             return (
               <motion.article
@@ -803,15 +1020,12 @@ export function ActionsPanel({
                 initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className={`px-5 py-5 sm:px-6 ${completed ? "bg-slate-50/60" : ""}`}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className={`px-5 py-5 sm:px-6 transition ${completed ? "bg-slate-50/60" : "hover:bg-slate-50/60"}`}
               >
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1 space-y-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className={`text-base font-semibold tracking-tight ${completed ? "text-slate-500 line-through" : "text-slate-950"}`}>
-                        {map.title}
-                      </h4>
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${priorityTone}`}>
                         {normalizeLabel(map.priority)} priority
                       </span>
@@ -829,20 +1043,15 @@ export function ActionsPanel({
                       ) : null}
                     </div>
 
-                    <WorkflowTrail
-                      regulationLabel="Regulation"
-                      changeLabel="Change"
-                      actionLabel="Compliance action"
-                      evidenceLabel="Evidence"
-                      regulationHref={regulation ? `/regulations/${regulation.id}` : undefined}
-                      changeHref="/changes"
-                    />
+                    <h4 className={`text-lg font-semibold tracking-tight ${completed ? "text-slate-500 line-through" : "text-slate-950"}`}>
+                      {map.title}
+                    </h4>
 
                     <p className="max-w-4xl text-sm leading-7 text-slate-700">
                       {map.description}
                     </p>
 
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,18rem)]">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                           Required evidence
@@ -854,7 +1063,7 @@ export function ActionsPanel({
 
                       <div className="rounded-2xl border border-slate-200 bg-white p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          Originating change / regulation
+                          Originating change
                         </p>
                         <div className="mt-2 space-y-2 text-sm leading-6 text-slate-700">
                           {regulation ? (
@@ -885,6 +1094,13 @@ export function ActionsPanel({
                       </div>
                     </div>
 
+                    <WorkflowTrail
+                      regulationLabel={regulation?.circular_number ? `Circular ${regulation.circular_number}` : "Regulation"}
+                      changeType={change?.change_type ?? "change"}
+                      impactLevel={change?.impact_level ?? map.priority}
+                      actionCount={null}
+                    />
+
                     {selectedChange ? (
                       <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
                         Filtered by selected change
@@ -892,25 +1108,8 @@ export function ActionsPanel({
                     ) : null}
                   </div>
 
-                  <div className="flex shrink-0 flex-col gap-3 xl:w-56">
-                    <div className={`rounded-2xl border p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${isOverdue ? "border-red-200 bg-red-50/70" : "border-slate-200 bg-white"}`}>
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                          Risk score
-                        </p>
-                        <Activity size={15} className={risk >= 75 ? "text-red-500" : risk >= 50 ? "text-amber-500" : "text-slate-400"} />
-                      </div>
-                      <div className="mt-2 flex items-end justify-between gap-3">
-                        <p className="text-3xl font-semibold tracking-tight text-slate-950">{risk}</p>
-                        <span className="pb-1 text-xs text-slate-400">/ 100</span>
-                      </div>
-                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className={`h-full rounded-full ${risk >= 75 ? "bg-red-500" : risk >= 50 ? "bg-amber-500" : "bg-slate-700"}`}
-                          style={{ width: `${risk}%` }}
-                        />
-                      </div>
-                    </div>
+                  <div className="flex shrink-0 flex-col gap-3 xl:w-60">
+                    <RiskMeter value={risk} />
 
                     <div className="rounded-2xl border border-slate-200 bg-white p-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
@@ -933,18 +1132,27 @@ export function ActionsPanel({
                     {!completed ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          updateMapStatus(
-                            map.id,
-                            map.status === "pending" ? "in_progress" : "completed"
-                          )
-                        }
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                        disabled={isUpdating}
+                        onClick={async () => {
+                          const nextStatus = map.status === "pending" ? "in_progress" : "completed";
+                          setUpdatingMapId(map.id);
+
+                          try {
+                            await updateMapStatus(map.id, nextStatus);
+                          } finally {
+                            setUpdatingMapId(null);
+                          }
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-900 bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 focus:outline-none focus:ring-4 focus:ring-slate-200"
                       >
-                        {inProgress ? "Mark complete" : "Start action"}
+                        {isUpdating
+                          ? "Updating..."
+                          : inProgress
+                            ? "Mark complete"
+                            : "Start action"}
                       </button>
                     ) : (
-                      <div className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
+                      <div className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
                         <CheckCircle2 size={14} />
                         Completed
                       </div>
@@ -953,19 +1161,12 @@ export function ActionsPanel({
                     {regulation ? (
                       <Link
                         href={`/regulations/${regulation.id}`}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200"
                       >
                         Open regulation
                         <ArrowUpRight size={14} />
                       </Link>
                     ) : null}
-                    <Link
-                      href="/changes"
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-4 focus:ring-blue-100"
-                    >
-                      View impact chain
-                      <ArrowUpRight size={14} />
-                    </Link>
                   </div>
                 </div>
               </motion.article>
@@ -1016,6 +1217,7 @@ export function RegulationsPanel({
     const source = query.trim() ? semanticResults : regulations;
     return source.slice(0, compact ? 5 : source.length);
   }, [compact, query, regulations, semanticResults]);
+  const searchActive = Boolean(query.trim());
 
   return (
     <SectionCard
@@ -1033,8 +1235,23 @@ export function RegulationsPanel({
         ) : null
       }
     >
-      <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-        <div className="relative max-w-3xl">
+      <div className={`border-b px-5 py-5 sm:px-6 ${searchActive ? "border-blue-200 bg-blue-50/40" : "border-slate-200"}`}>
+        <div className="max-w-3xl space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+              Open intelligence
+            </span>
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+              Original source
+            </span>
+            {searchActive ? (
+              <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                Semantic search active
+              </span>
+            ) : null}
+          </div>
+
+          <div className="relative">
           <Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={query}
@@ -1046,10 +1263,12 @@ export function RegulationsPanel({
           {semanticLoading ? (
             <RefreshCw size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />
           ) : null}
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Semantic search returns the most relevant documents and highlights the evidence that matched.
+          </p>
         </div>
-        <p className="mt-2 text-xs text-slate-400">
-          Semantic search returns the most relevant documents and highlights the evidence that matched.
-        </p>
       </div>
 
       {loading ? (
@@ -1058,12 +1277,21 @@ export function RegulationsPanel({
           <div className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-slate-50" />
           <div className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-slate-50" />
         </div>
+      ) : searchActive && semanticLoading ? (
+        <div className="space-y-3 px-5 py-6 sm:px-6">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <RefreshCw size={15} className="animate-spin text-slate-400" />
+            Searching semantic index...
+          </div>
+          <div className="h-20 animate-pulse rounded-2xl border border-blue-100 bg-blue-50/40" />
+          <div className="h-20 animate-pulse rounded-2xl border border-blue-100 bg-blue-50/40" />
+        </div>
       ) : visibleRegulations.length === 0 ? (
         <EmptyState
           icon={<FileText size={18} />}
-          title={query.trim() ? "No matching regulations found" : "No regulations available"}
+          title={searchActive ? "No matching regulations found" : "No regulations available"}
           description={
-            query.trim()
+            searchActive
               ? "Try a broader term, a circular number, or a source keyword."
               : "Once source documents are available, they will appear in this register."
           }
@@ -1071,7 +1299,7 @@ export function RegulationsPanel({
       ) : (
         <div className="divide-y divide-slate-200">
           {visibleRegulations.map((regulation) => {
-            const searchMode = Boolean(query.trim());
+            const searchMode = searchActive;
             const relevance =
               regulation.similarity !== undefined ? Math.round(regulation.similarity * 100) : null;
 
@@ -1082,7 +1310,7 @@ export function RegulationsPanel({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.15 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="px-5 py-5 sm:px-6"
+                className="px-5 py-5 transition hover:bg-slate-50/70 sm:px-6"
               >
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1 space-y-4">
@@ -1154,22 +1382,11 @@ export function RegulationsPanel({
   );
 }
 
-function relatedRegulationsForSource(source: Source, regulations: Regulation[]) {
-  const sourceHost = formatHost(source.base_url);
-
-  return regulations.filter((regulation) => {
-    const regulationHost = formatHost(regulation.source_url);
-    return regulationHost === sourceHost || regulation.source_url.startsWith(source.base_url);
-  });
-}
-
 export function SourcesPanel({
   sources,
-  regulations = [],
   loading,
 }: {
   sources: Source[];
-  regulations?: Regulation[];
   loading: boolean;
 }) {
   return (
@@ -1192,8 +1409,6 @@ export function SourcesPanel({
       ) : (
         <div className="grid divide-y divide-slate-200 md:grid-cols-3 md:divide-x md:divide-y-0">
           {sources.map((source) => {
-            const relatedRegulations = relatedRegulationsForSource(source, regulations);
-
             return (
               <motion.article
                 key={source.id}
@@ -1201,7 +1416,7 @@ export function SourcesPanel({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="p-5"
+                className="p-5 transition hover:bg-slate-50/60"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -1222,7 +1437,7 @@ export function SourcesPanel({
                 <div className="mt-4 space-y-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Source type
+                      Source type / status
                     </p>
                     <p className="mt-1 text-sm text-slate-700">
                       {normalizeLabel(source.source_type)}
@@ -1242,20 +1457,6 @@ export function SourcesPanel({
                       {formatHost(source.base_url)}
                       <ExternalLink size={14} />
                     </a>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Monitored regulations
-                    </p>
-                    <p className="mt-2 text-sm font-medium text-slate-950">
-                      {relatedRegulations.length}
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">
-                      {relatedRegulations.length > 0
-                        ? `${relatedRegulations.slice(0, 2).map((regulation) => regulation.title).join(" · ")}${relatedRegulations.length > 2 ? " · …" : ""}`
-                        : "No direct regulation match could be established from the current data."}
-                    </p>
                   </div>
                 </div>
               </motion.article>
