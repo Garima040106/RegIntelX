@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
+  AlertTriangle,
   ArrowLeft,
   ArrowUpRight,
   Calendar,
   CheckCircle2,
+  ClipboardCheck,
   ExternalLink,
   FileText,
   Hash,
@@ -266,6 +268,50 @@ export default function RegulationPage({ params }: Props) {
                 </p>
               </section>
             </aside>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
+          <div className="border-b border-white/10 px-6 py-5 md:px-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+              Intelligence chain
+            </p>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">
+              From source document to compliance work
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
+              RegIntelX preserves the original document while connecting its structured record to detected changes, impact, and operational actions.
+            </p>
+          </div>
+
+          <div className="grid divide-y divide-white/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-slate-300"><FileText size={16} /><span className="text-xs font-semibold uppercase tracking-[0.18em]">Original document</span></div>
+              <p className="mt-3 text-sm font-medium text-white">{formatHost(regulation.source_url)}</p>
+              <p className="mt-1 text-xs text-slate-400">Authoritative source</p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-blue-300"><ShieldCheck size={16} /><span className="text-xs font-semibold uppercase tracking-[0.18em]">Structured intelligence</span></div>
+              <p className="mt-3 text-sm font-medium text-white">Metadata and summary</p>
+              <p className="mt-1 text-xs text-slate-400">Regulation record</p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-amber-300"><AlertTriangle size={16} /><span className="text-xs font-semibold uppercase tracking-[0.18em]">Detected change</span></div>
+              <p className="mt-3 text-sm font-medium text-white">{relatedChanges.length} linked change{relatedChanges.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-xs text-slate-400">Change records</p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-red-300"><Activity size={16} /><span className="text-xs font-semibold uppercase tracking-[0.18em]">Impact</span></div>
+              <p className="mt-3 text-sm font-medium text-white">
+                {relatedChanges.length > 0 ? relatedChanges.map((change) => `${formatStatus(change.impact_level)} impact`).join(", ") : "Not detected"}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">Affected domains and priority</p>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center gap-2 text-emerald-300"><ClipboardCheck size={16} /><span className="text-xs font-semibold uppercase tracking-[0.18em]">Compliance action</span></div>
+              <p className="mt-3 text-sm font-medium text-white">{relatedActions.length} linked action{relatedActions.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-xs text-slate-400">Downstream operational work</p>
+            </div>
           </div>
         </section>
 

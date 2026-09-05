@@ -115,7 +115,7 @@ function useWorkspaceSection(pathname: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const prefersReducedMotion = useReducedMotion();
-  const { backendStatus, refreshData } = useRegIntel();
+  const { backendStatus, loading, refreshData } = useRegIntel();
   const { activeSection, setActiveSection } = useWorkspaceSection(pathname);
 
   const navHref = useMemo(
@@ -189,9 +189,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={refreshData}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:ring-offset-0"
+                aria-label={loading ? "Refreshing workspace data" : "Refresh workspace data"}
+                disabled={loading}
+                title="Refresh workspace data"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200 focus:ring-offset-0 disabled:cursor-wait disabled:opacity-70"
               >
-                <RefreshCw size={15} />
+                <RefreshCw size={15} className={loading ? "animate-spin" : undefined} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
@@ -207,7 +210,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Workspace
             </span>
             {navItems.map((item) => {
-              const active = pathname === "/" && activeSection === item.id;
+              const routeActive = item.id === "overview" ? pathname === "/" : pathname.startsWith(`/${item.id}`);
+              const active = pathname === "/" ? activeSection === item.id : routeActive;
               const href = navHref(item.id);
 
               return (

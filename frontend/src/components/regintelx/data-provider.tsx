@@ -88,9 +88,10 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
     const now = new Date().getTime();
     const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
-    const highImpactChanges = data.changes.filter(
-      (change) => change.impact_level?.toLowerCase() === "high"
-    ).length;
+    const highImpactChanges = data.changes.filter((change) => {
+      const impact = change.impact_level?.toLowerCase();
+      return impact === "high" || impact === "critical";
+    }).length;
     const openActions = data.maps.filter(
       (map) => map.status !== "completed"
     ).length;
@@ -120,10 +121,8 @@ export function RegIntelProvider({ children }: { children: ReactNode }) {
         dueDate - now <= sevenDays;
 
       return (
-        priority === "high" ||
-        priority === "critical" ||
-        overdueActions > 0 ||
-        dueSoon
+        priority === "high" || priority === "critical" || dueSoon ||
+        (dueDate !== null && !Number.isNaN(dueDate) && dueDate < now)
       );
     }).length;
     const averageRisk = data.maps.length

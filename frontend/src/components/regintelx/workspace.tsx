@@ -224,19 +224,31 @@ function WorkflowTrail({
   } satisfies Record<WorkflowTone, string>;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+          Compliance workflow
+        </p>
+        <span className="text-[11px] text-slate-400">Evidence follows action</span>
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-0">
         {stages.map((stage, index) => (
-          <div key={stage.label} className="flex min-w-0 items-center gap-2">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium ${toneStyles[stage.tone]}`}>
-              {stage.icon}
-              <span>{stage.label}</span>
+          <div key={stage.label} className="flex min-w-0 flex-1 items-center sm:items-start">
+            <div className="flex min-w-0 items-start gap-2">
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${toneStyles[stage.tone]}`}>
+                {stage.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  {stage.label}
+                </p>
+                <p className="mt-1 truncate text-xs font-medium text-slate-800">
+                  {stage.value}
+                </p>
+              </div>
             </div>
-            <span className="max-w-[10rem] truncate text-[11px] text-slate-500">
-              {stage.value}
-            </span>
             {index < stages.length - 1 ? (
-              <ArrowRight size={12} className="shrink-0 text-slate-300" />
+              <ArrowRight size={14} className="mx-3 mt-2 hidden shrink-0 text-slate-300 sm:block" />
             ) : null}
           </div>
         ))}
@@ -396,7 +408,7 @@ function KPI({
       whileHover={{ y: -2 }}
       whileTap={{ y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut", delay }}
-      className={`rounded-2xl border p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${toneMap}`}
+      className={`min-h-[10.5rem] rounded-2xl border p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${toneMap}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -441,7 +453,7 @@ export function PageIntro({
 }
 
 export function MetricsGrid() {
-  const { regulations, metrics } = useRegIntel();
+  const { regulations, maps, metrics } = useRegIntel();
 
   const cards = [
     {
@@ -468,7 +480,7 @@ export function MetricsGrid() {
     {
       label: "Average risk",
       value: metrics.averageRisk,
-      note: `Across ${metrics.openActions} active compliance actions`,
+          note: `Across ${maps.length} compliance actions`,
       icon: <Activity size={18} />,
       tone: metrics.averageRisk >= 75 ? ("red" as const) : metrics.averageRisk >= 50 ? ("amber" as const) : ("blue" as const),
     },
@@ -524,7 +536,7 @@ export function AttentionPanel() {
               {metrics.highImpactChanges > 0 ? (
                 <Link
                   href="/changes"
-                  className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 transition hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
                 >
                   {metrics.highImpactChanges} high-impact change{metrics.highImpactChanges === 1 ? "" : "s"}
                   <ArrowUpRight size={13} />
@@ -534,7 +546,7 @@ export function AttentionPanel() {
               {metrics.overdueActions > 0 ? (
                 <Link
                   href="/actions"
-                  className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-700 transition hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
                 >
                   {metrics.overdueActions} overdue action{metrics.overdueActions === 1 ? "" : "s"}
                   <ArrowUpRight size={13} />
@@ -544,7 +556,7 @@ export function AttentionPanel() {
               {metrics.urgentActions > 0 ? (
                 <Link
                   href="/actions"
-                  className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-amber-100"
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-medium text-amber-700 transition hover:border-amber-300 hover:bg-amber-50 focus:outline-none focus:ring-4 focus:ring-amber-100"
                 >
                   {metrics.urgentActions} urgent action{metrics.urgentActions === 1 ? "" : "s"}
                   <ArrowUpRight size={13} />
@@ -700,9 +712,11 @@ export function ChangesPanel({
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${stateTone(change.change_type)}`}>
                         {normalizeLabel(change.change_type)}
                       </span>
-                      <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                        {confidenceText}
-                      </span>
+                      {change.ai_confidence !== null ? (
+                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                          {confidenceText}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div>
@@ -710,7 +724,7 @@ export function ChangesPanel({
                         Regulation
                       </p>
                       <h4 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
-                        {relatedRegulation?.title ?? "Unlinked regulation"}
+                        {relatedRegulation?.title ?? "Regulation record unavailable"}
                       </h4>
                     </div>
 
