@@ -1,6 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# RegIntelX Frontend
+
+This directory contains the Next.js workspace for RegIntelX, the regulatory intelligence and compliance tracking application.
+
+## Requirements
+
+- Node.js 20 or newer
+- npm
+- Access to the RegIntelX API, or a backend running locally
+
+## Install and Run Locally
+
+From this directory:
+
+```bash
+npm install
+npm run dev
+```
+
+Run `npm install` only on the first local setup or after `package.json` or `package-lock.json` changes. Then open `http://localhost:3000`.
+
+Available commands:
+
+```bash
+npm run dev      # Start the development server
+npm run lint     # Run ESLint
+npm run build    # Create a production build
+npm run start    # Serve the production build
+```
+
+The normal demo path is:
+
+`Overview -> Changes -> Actions -> Regulations -> Open intelligence -> Sources -> Overview`
+
+## API Connection
+
+The frontend currently uses the deployed API at:
+
+`https://regintelx-backend.onrender.com`
+
+This URL is defined in `src/lib/regintelx/api.ts`. The deployed backend currently allows the production Vercel origin through CORS. When running the frontend locally, the browser may show an unavailable API state because `localhost` and `127.0.0.1` are not in that allowlist. Use the deployed frontend for the live demo, or add the local origin to the backend CORS configuration when developing against the deployed API.
+
+## Production Deployment
+
+Build and serve the frontend with:
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+The frontend can be deployed to Vercel or another Node-compatible host. The current production origin referenced by the backend CORS configuration is `https://reg-intel-x.vercel.app`.
 
 First, run the development server:
 
